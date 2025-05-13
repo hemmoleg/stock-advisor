@@ -1,3 +1,4 @@
+import spacy
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 import torch.nn.functional as F
@@ -8,6 +9,8 @@ tokenizer = AutoTokenizer.from_pretrained("ProsusAI/finbert")
 # Load the actual pretrained FinBERT model for sequence classification
 # The model has been fine-tuned to classify financial text sentiment
 model = AutoModelForSequenceClassification.from_pretrained("ProsusAI/finbert")
+
+nlp = spacy.load("en_core_web_lg")
 
 # Define the labels used by the model: negative, neutral, and positive sentiment
 labels = ["Positive", "Negative", "Neutral"]
@@ -35,4 +38,21 @@ def analyze_sentiment(text):
   return {
       "sentiment": labels[pred_idx],
       "probabilities": dict(zip(labels, probs[0].tolist()))
+  }
+
+def extract_stocks(text):
+  # Use spaCy to extract named entities
+  doc = nlp(text)
+  companies = [ent.text for ent in doc.ents if ent.label_ in ["ORG", "GPE"]]
+  return companies
+
+def analyze_title(title): 
+  # Function to analyze a news article
+  sentiment = analyze_sentiment(title)
+  companies = extract_stocks(title)
+  return {
+      "title": title,
+      "sentiment": sentiment['sentiment'],
+      "probabilities": sentiment['probabilities'],
+      "companies": companies
   }
