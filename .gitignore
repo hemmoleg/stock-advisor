@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+.env
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter or notebooks (optional)
+.ipynb_checkpoints/
+
+# Model weights or output logs (optional)
+*.pt
+*.pth
+*.log
