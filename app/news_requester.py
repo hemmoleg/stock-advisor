@@ -1,9 +1,14 @@
+from datetime import datetime, timedelta
 import requests
 import os
 from dotenv import load_dotenv
-import json
+import yfinance as yf
+import anthropic
 
 load_dotenv()
+api_key = os.getenv("FINNHUB_API_KEY")
+
+client = anthropic.Anthropic(api_key=os.environ.get("CLAUDE_API_KEY"))
 
 def get_news_NEWSAPI():
   api_key = os.getenv("NEWS_API_KEY")
@@ -29,15 +34,98 @@ def get_news_NEWSAPI():
 
   return articles
 
-def get_news_FINNHUB(symbol: str):
-    api_key = os.getenv("FINNHUB_API_KEY")
-    
+def get_news_FINNHUB(symbol: str, date: str):
     url = f"https://finnhub.io/api/v1/company-news"
+    provided_date = datetime.strptime(date, "%Y-%m-%d")
+    two_days_ago = (provided_date - timedelta(days=2)).strftime("%Y-%m-%d")
+    
+    # Format the provided date as the "to" date
+    #to_date = date.strftime("%Y-%m-%d")
+
+    print(f"Fetching news from: {two_days_ago}, to: {date}")
+
     params = {
-        "symbol": symbol.upper(),        # e.g. 'AAPL'
-        "from": "2025-05-01",            # start date (YYYY-MM-DD)
-        "to": "2025-05-13",              # end date
+        "symbol": symbol.upper(),        # stock symbol
+        "from": two_days_ago,            # start date (YYYY-MM-DD)
+        "to": date,                   # end date
         "token": api_key
     }
     response = requests.get(url, params=params)
     return response.json()
+
+
+def get_news_content_with_claude(url):
+    website_response = requests.get(url)
+
+    extracted_url = extract_url_with_claude(website_response.text)
+    #print("Extracted URL:", extracted_url)
+    return website_response.text
+
+    ###
+    # somehow remove ssr. from url MAYBE if necessary
+    ###
+    
+    #website_response = requests.get(extracted_url)
+
+    message = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=4000,
+        messages=[
+            {"role": "user", "content": f"""Parse this chunk of the HTML
+              page and give me just the text of the news article: {website_response.text}"""}
+        ]
+    )
+
+    return message.to_dict()["content"][0]["text"]
+
+def extract_url_with_claude(text):
+    message = client.messages.create(
+          model="claude-sonnet-4-20250514",
+          max_tokens=4000,
+          messages=[
+              {"role": "user", "content": f"""Somewhere in the script on that website
+              is an encoded URL. Find and return nothing but that URL: {text}"""},
+              {"role": "assistant", "content": ":"} # to only get the URL and not the whole text
+          ]
+      )
+    extracted_url = message.to_dict()["content"][0]["text"]
+    return extracted_url
+
+def get_price_now(symbol):
+    url = f"https://finnhub.io/api/v1/quote?symbol={symbol}&token={api_key}"
+    response = requests.get(url)
+    data = response.json()
+    return data.get("c")  # 'c' is the current price in Finnhub's API
+
+
+def get_company_name_by_symbol(symbol):
+    url = f"https://finnhub.io/api/v1/stock/profile2?symbol={symbol}&token={api_key}"
+    response = requests.get(url)
+    data = response.json()
+    return data.get("name") 
+
+
+def get_closing_price_at_date(symbol: str, date: str):
+    provided_date = datetime.strptime(date, "%Y-%m-%d")
+    
+    # Format the date for yfinance
+    start_date = provided_date.strftime("%Y-%m-%d")
+    end_date = (provided_date + timedelta(days=1)).strftime("%Y-%m-%d")  # Add one day to include the full day
+
+    data = yf.download(symbol, start=start_date, end=end_date, interval="1d")
+    
+    if data.empty:
+        raise ValueError(f"No data found for {symbol} on {date}")
+
+    # Extract the first row of data
+    row = data.iloc[0]
+    clean_dict = {key[0]: value for key, value in row.items()}
+
+    return clean_dict['Close']
+
+    # return {
+    #     'open': clean_dict['Open'],
+    #     'high': clean_dict['High'],
+    #     'low': clean_dict['Low'],
+    #     'close': clean_dict['Close']
+    # }

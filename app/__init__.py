@@ -1,33 +1,35 @@
 from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 
-from app.ai import analyze_title
-from .news_requester import get_news_FINNHUB, get_news_NEWSAPI
-import json
+db = SQLAlchemy()
+migrate = Migrate()
 
 def create_app():
   app = Flask(__name__)
+  
+  app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://user:password@localhost:5433/stock_advisor'
+  app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+  db.init_app(app)
+  migrate.init_app(app, db)
+
   from .routes import bp as routes_bp
   app.register_blueprint(routes_bp)
 
-  #articles = get_yesterdays_news()
+  with app.app_context():
+    db.create_all()
 
-  # Save the headlines to a JSON file
-  # with open("news_2025_05_12.json", "w") as f:
-  #     json.dump(articles, f)
+  #Apple
+  #Sentiment Summary: (From May 14 / Current Value(16:05): 188,90)
+  #Positive: 41
+  #Negative: 16
+  #Neutral: 36
 
-  # with open("news_2025_05_12.json", "r") as f:
-  #   articles = json.load(f)
+  #Intel
+  #Sentiment Summary: (From May 14 / Current Value(16:10): 19,40)
+  #Positive: 4
+  #Negative: 4
+  #Neutral: 4
 
-  # for art in articles[10:20]:
-  #   title = art["title"]
-  #   if title:
-  #       print(analyze_title(title))
-  #       print("\n\n")
-
-  # Example usage
-  news = get_news_FINNHUB("TSLA")
-
-  for article in news[:5]:
-      print(f"{article['headline']}\n{article['url']}\n")
 
   return app
