@@ -11,7 +11,7 @@ function App() {
       </header>
       <main className='text-gray-200'>
         <p>Get stock predictions and insights.</p>
-        <p>Use the form to submit a stock symbol for analysis.</p>
+        <p className='mb-8'>Use the form to submit a stock symbol for analysis.</p>
         <PredictionForm />
         <Predictions />
       </main>

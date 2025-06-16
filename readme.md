@@ -16,5 +16,4 @@ access DB: - docker exec -it stock_advisor_db bash
 - add redux to frontend
 
 - newsapi
-
-- figure out date in prediction_for_company_and_date_exists
+- newscatcher

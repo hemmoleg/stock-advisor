@@ -40,9 +40,8 @@ const PredictionForm = () => {
 
   return (
     <div>
-      <h1>Stock Advisor</h1>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center justify-center gap-4">
           <label>
             Stock Symbol
             <input
@@ -64,10 +63,10 @@ const PredictionForm = () => {
             placeholderText="Select a date"
             shouldCloseOnSelect={true}
           />
+          <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
+            Get Prediction
+          </button>
         </div>
-        <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
-          Get Prediction
-        </button>
       </form>
 
       {/* Display error message if response status is "error" */}
