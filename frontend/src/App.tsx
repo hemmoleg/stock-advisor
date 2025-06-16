@@ -5,17 +5,19 @@ import Predictions from './components/Predictions';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1 className='text-red-500'>Welcome to Stock Advisor</h1>
-      </header>
-      <main className='text-gray-200'>
-        <p>Get stock predictions and insights.</p>
-        <p className='mb-8'>Use the form to submit a stock symbol for analysis.</p>
-        <PredictionForm />
-        <Predictions />
-      </main>
-    </div>
+   
+      <div className="App">
+        <header className="App-header">
+          <h1 className='text-red-500'>Welcome to Stock Advisor</h1>
+        </header>
+        <main className='text-gray-200'>
+          <p>Get stock predictions and insights.</p>
+          <p className='mb-8'>Use the form to submit a stock symbol for analysis.</p>
+          <PredictionForm />
+          <Predictions />
+        </main>
+      </div>
+   
   );
 }
 

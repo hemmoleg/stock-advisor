@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import axios from "axios";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from '../store';
+import { fetchPredictions } from '../store/predictionsSlice';
 
 interface ResponseData {
   status: string;
@@ -12,6 +15,7 @@ const PredictionForm = () => {
   const [symbol, setSymbol] = useState("");
   const [response, setResponse] = useState<ResponseData | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const dispatch = useDispatch<AppDispatch>();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,6 +25,11 @@ const PredictionForm = () => {
         date: selectedDate ? selectedDate.toLocaleDateString("en-CA") : null,
       });
       setResponse(res.data);
+      // Refresh predictions after successful submission
+      await dispatch(fetchPredictions());
+      // Clear the form
+      setSymbol("");
+      setSelectedDate(null);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.error("Axios error:", error);

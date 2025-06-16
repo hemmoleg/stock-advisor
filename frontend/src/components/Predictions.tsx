@@ -1,39 +1,15 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-
-interface Prediction {
-  id: number;
-  symbol: string;
-  name: string;
-  date_time: string;
-  positive_count: number;
-  negative_count: number;
-  neutral_count: number;
-  positive_probability: number,
-  negative_probability: number,
-  neutral_probability: number,
-  stock_value: number;
-}
-
+import React, { useEffect } from "react";
+import { useSelector, useDispatch } from 'react-redux';
+import { AppDispatch, RootState } from '../store';
+import { fetchPredictions } from '../store/predictionsSlice';
 
 const Predictions: React.FC = () => {
-  const [predictions, setPredictions] = useState<Prediction[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const dispatch = useDispatch<AppDispatch>();
+  const { items: predictions, loading } = useSelector((state: RootState) => state.predictions);
 
   useEffect(() => {
-    const fetchPredictions = async () => {
-      try {
-        const response = await axios.get<Prediction[]>("/predictions");
-        setPredictions(response.data);
-      } catch (error) {
-        console.error("Error fetching predictions:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPredictions();
-  }, []);
+    dispatch(fetchPredictions());
+  }, [dispatch]);
 
   if (loading) {
     return <div className="text-center text-lg text-gray-500">Loading predictions...</div>;
