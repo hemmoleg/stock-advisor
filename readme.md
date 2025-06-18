@@ -17,3 +17,7 @@ access DB: - docker exec -it stock_advisor_db bash
 
 - newsapi
 - newscatcher
+
+---> figure out how to properly get closing_price for stock on date
+     (WITHOUT the timeinterval thing) -> get_closing_price_at_date
+     THEN commit!

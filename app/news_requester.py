@@ -105,27 +105,19 @@ def get_company_name_by_symbol(symbol):
     return data.get("name") 
 
 
-def get_closing_price_at_date(symbol: str, date: str):
-    provided_date = datetime.strptime(date, "%Y-%m-%d")
-    
-    # Format the date for yfinance
-    start_date = provided_date.strftime("%Y-%m-%d")
-    end_date = (provided_date + timedelta(days=1)).strftime("%Y-%m-%d")  # Add one day to include the full day
+def get_closing_price_at_date(symbol: str, date_str: str):
+    date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    next_day = date + timedelta(days=1)
 
-    data = yf.download(symbol, start=start_date, end=end_date, interval="1d")
-    
+    data = yf.download(symbol, start=date_str, end=next_day.strftime("%Y-%m-%d"), progress=False)
+  
     if data.empty:
-        raise ValueError(f"No data found for {symbol} on {date}")
+        return None
 
-    # Extract the first row of data
-    row = data.iloc[0]
-    clean_dict = {key[0]: value for key, value in row.items()}
+    closing_price = float(round(data.loc[str(date)]['Close'][symbol],2))
 
-    return clean_dict['Close']
-
-    # return {
-    #     'open': clean_dict['Open'],
-    #     'high': clean_dict['High'],
-    #     'low': clean_dict['Low'],
-    #     'close': clean_dict['Close']
-    # }
+    # If there's only one row, pandas may return a scalar, otherwise a Series
+    if isinstance(closing_price, float):
+        return closing_price
+    else:
+        return closing_price.iloc[0]

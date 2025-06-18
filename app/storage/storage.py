@@ -1,5 +1,5 @@
 from app.news_requester import get_company_name_by_symbol
-from app.storage.db_models import Company, PredictionSummary
+from app.storage.db_models import Company, PredictionSummary, ClosingPrice
 from app import db
 
 def get_all_predictions():
@@ -64,3 +64,28 @@ def company_exists(symbol):
     # Query the Company table to check if the symbol exists
     existing_company = Company.query.filter_by(symbol=symbol).first()
     return existing_company is not None
+
+
+def save_closing_price(symbol: str, date, closing_price):
+    """Save a closing price to the database"""
+    if company_exists(symbol) is False:
+        name = get_company_name_by_symbol(symbol)
+        new_company = Company(symbol=symbol, name=name)
+        db.session.add(new_company)
+        db.session.commit()
+    
+    # Check if closing price already exists for this symbol and date
+    existing_price = ClosingPrice.query.filter_by(symbol=symbol, date_time=date).first()
+    if existing_price:
+        # Update existing price
+        existing_price.closing_price = closing_price
+    else:
+        # Create new closing price entry
+        closing_price_entry = ClosingPrice(
+            symbol=symbol,
+            date_time=date,
+            closing_price=closing_price
+        )
+        db.session.add(closing_price_entry)
+    
+    db.session.commit()

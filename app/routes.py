@@ -1,9 +1,10 @@
-from datetime import datetime, time
+from datetime import datetime, time as dt_time, timedelta
 from zoneinfo import ZoneInfo
 from flask import Blueprint, jsonify, request
 
 from app.news_requester import get_closing_price_at_date, get_company_name_by_symbol, get_price_now, get_news_FINNHUB, get_news_content_with_claude
-from app.storage.storage import get_all_predictions, prediction_for_company_and_date_exists, save_prediction
+from app.storage.storage import get_all_predictions, prediction_for_company_and_date_exists, save_prediction, save_closing_price
+from app.utils import save_future_closing_prices
 from .ai import analyze_sentiment, classify_text
 
 bp = Blueprint('routes', __name__)
@@ -38,26 +39,29 @@ def test_claude():
 
   return text, 200
 
+
 @bp.route('/make_prediction', methods=['POST'])
 def make_and_save_prediction():
   data = request.get_json()
   symbol = data.get('symbol')
-  date = data.get('date')
+  date_str: str = data.get('date')
 
-  if not date:
-    date = datetime.now().strftime('%Y-%m-%d')
+  if not date_str:
+    date_str = datetime.now().strftime('%Y-%m-%d')
 
   #check if prediction for date and company already exists
-  if prediction_for_company_and_date_exists(symbol, date):
+  if prediction_for_company_and_date_exists(symbol, date_str):
+    print(f"ERROR: Prediction for {symbol} on {date_str} already exists")
     return jsonify({
       "status": "error", 
-      "message": f"Prediction for {symbol} on {date} already exists"
+      "message": f"Prediction for {symbol} on {date_str} already exists"
     }), 400
 
-  news = get_news_FINNHUB(symbol, date)
+  news = get_news_FINNHUB(symbol, date_str)
   print(f"news for {symbol}: {len(news)}")
   
   if len(news) == 0:
+    print(f"ERROR: No news for {symbol}.")
     return jsonify({
       "status": "error", 
       "message": f"No news for {symbol}."
@@ -92,25 +96,33 @@ def make_and_save_prediction():
   print(f"Negative: {negative_count} ({negative_probability})")
   print(f"Neutral: {neutral_count} ({neutral_probability})")
 
-  if date == datetime.now().strftime('%Y-%m-%d'):
+  if date_str == datetime.now().strftime('%Y-%m-%d'):
     stock_value = get_price_now(symbol)
-    date_time = datetime.combine(datetime.strptime(date, "%Y-%m-%d").date(), datetime.now(ZoneInfo("Europe/Berlin")).time())
+    #date_time = datetime.combine(datetime.strptime(date, "%Y-%m-%d").date(), datetime.now(ZoneInfo("Europe/Berlin")).time())
   else:
-    stock_value = get_closing_price_at_date(symbol, date)
-    date_time = datetime.combine(datetime.strptime(date, "%Y-%m-%d").date(), time(hour=23, minute=59, second=59))
+    stock_value = get_closing_price_at_date(symbol, date_str)
+    #date_time = datetime.combine(datetime.strptime(date, "%Y-%m-%d").date(), dt_time(hour=23, minute=59, second=59))
 
-  save_prediction(symbol, date_time, positive_count, negative_count, neutral_count, positive_probability, 
-                  negative_probability, neutral_probability, stock_value)
+  base_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+  
+  # Save current stock price
+  save_closing_price(symbol, base_date, stock_value)
+  
+  # Save future closing prices
+  save_future_closing_prices(symbol, base_date)
+
+  #save_prediction(symbol, date_time, positive_count, negative_count, neutral_count, positive_probability, 
+  #                negative_probability, neutral_probability, stock_value)
   
   result = {
       "symbol": symbol,
       "positive_count": positive_count,
       "negative_count": negative_count,
       "neutral_count": neutral_count,
-      "positive_probability": positive_probability,
-      "negative_probability": negative_probability,
-      "neutral_probability": neutral_probability,
-      "message": f"Prediction and sentiment summary for {symbol} saved successfully."
+      "positive_probability": round(positive_probability, 2),
+      "negative_probability": round(negative_probability, 2),
+      "neutral_probability": round(neutral_probability, 2),
+      "message": f"Prediction and sentiment summary for {symbol} on {datetime.strptime(date_str, "%Y-%m-%d").strftime('%d.%m.%Y')} saved successfully."
   }
 
   return jsonify(result), 200
@@ -126,26 +138,42 @@ def set_closing_price():
     data = request.get_json()
     symbol = data.get('symbol')
     date = data.get('date')
-    
+
+    if not symbol:
+        return jsonify({"status": "error", 
+                        "message": "Missing 'symbol' in request"}), 400
+
     if date is None:
-      date = datetime.today().strftime("%Y-%m-%d")
-    
-    dt = datetime.strptime(date, '%Y-%m-%d')
-    from_unix = int(time.mktime(dt.timetuple()))
-    to_unix = from_unix + 86400
+        date = datetime.today().strftime("%Y-%m-%d")
+
+    try:
+        date = datetime.strptime(date, '%Y-%m-%d')
+    except ValueError:
+        return jsonify({"status": "error", 
+                        "message": "Invalid date format. Use YYYY-MM-DD"}), 400
 
     # Check if the closing price for the given symbol and date already exists
-    # if prediction_for_company_and_date_exists(symbol, date):
-    #     return jsonify({"status": "error", 
-    #                     "message": f"Closing price for {symbol} already exists for {date}."
-    #                     }), 400
+    if prediction_for_company_and_date_exists(symbol, date):
+        return jsonify({
+            "status": "error",
+            "message": f"Closing price for {symbol} already exists for {date}."
+        }), 400
 
-    closing = get_closing_price_at_date(symbol, from_unix, to_unix)
-    return closing, 200
+    try:
+      closing_price = get_closing_price_at_date(symbol, date)
+    except ValueError as e:
+        return jsonify({
+            "status": "error",
+            "message": f"Could not fetch closing price for {symbol} on {date}. {e}"
+        }), 500
 
     # Save the closing price to the database
-    # save_closing_price(symbol, date_time, closing_price)
+    save_closing_price(symbol, date, closing_price)
 
-    return jsonify({"status": "success", 
-                    "message": f"Closing price for {symbol} saved successfully."
-                    }), 200
+    return jsonify({
+        "status": "success",
+        "message": f"Closing price for {symbol} saved successfully.",
+        "symbol": symbol,
+        "date": date,
+        "closing_price": closing_price
+    }), 200
