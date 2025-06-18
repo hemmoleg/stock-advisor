@@ -3,7 +3,7 @@ from zoneinfo import ZoneInfo
 from flask import Blueprint, jsonify, request
 
 from app.news_requester import get_closing_price_at_date, get_company_name_by_symbol, get_price_now, get_news_FINNHUB, get_news_content_with_claude
-from app.storage.storage import get_all_predictions, prediction_for_company_and_date_exists, save_prediction, save_closing_price
+from app.storage.storage import get_all_predictions_with_future_prices, prediction_for_company_and_date_exists, save_prediction, save_closing_price
 from app.utils import save_future_closing_prices
 from .ai import analyze_sentiment, classify_text
 
@@ -19,7 +19,7 @@ def analyze():
 
 @bp.route('/predictions', methods=['GET'])
 def get_predictions():
-    result = get_all_predictions()
+    result = get_all_predictions_with_future_prices()
     return jsonify(result)
 
 
@@ -144,20 +144,8 @@ def set_closing_price():
                         "message": "Missing 'symbol' in request"}), 400
 
     if date is None:
-        date = datetime.today().strftime("%Y-%m-%d")
-
-    try:
-        date = datetime.strptime(date, '%Y-%m-%d')
-    except ValueError:
         return jsonify({"status": "error", 
-                        "message": "Invalid date format. Use YYYY-MM-DD"}), 400
-
-    # Check if the closing price for the given symbol and date already exists
-    if prediction_for_company_and_date_exists(symbol, date):
-        return jsonify({
-            "status": "error",
-            "message": f"Closing price for {symbol} already exists for {date}."
-        }), 400
+                        "message": "Missing 'date' in request"}), 400
 
     try:
       closing_price = get_closing_price_at_date(symbol, date)
