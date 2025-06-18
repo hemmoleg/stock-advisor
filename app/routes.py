@@ -98,10 +98,10 @@ def make_and_save_prediction():
 
   if date_str == datetime.now().strftime('%Y-%m-%d'):
     stock_value = get_price_now(symbol)
-    #date_time = datetime.combine(datetime.strptime(date, "%Y-%m-%d").date(), datetime.now(ZoneInfo("Europe/Berlin")).time())
+    date_time = datetime.combine(datetime.strptime(date_str, "%Y-%m-%d").date(), datetime.now(ZoneInfo("Europe/Berlin")).time())
   else:
     stock_value = get_closing_price_at_date(symbol, date_str)
-    #date_time = datetime.combine(datetime.strptime(date, "%Y-%m-%d").date(), dt_time(hour=23, minute=59, second=59))
+    date_time = datetime.combine(datetime.strptime(date_str, "%Y-%m-%d").date(), dt_time(hour=23, minute=59, second=59))
 
   base_date = datetime.strptime(date_str, "%Y-%m-%d").date()
   
@@ -111,8 +111,8 @@ def make_and_save_prediction():
   # Save future closing prices
   save_future_closing_prices(symbol, base_date)
 
-  #save_prediction(symbol, date_time, positive_count, negative_count, neutral_count, positive_probability, 
-  #                negative_probability, neutral_probability, stock_value)
+  save_prediction(symbol, date_time, positive_count, negative_count, neutral_count, positive_probability, 
+                  negative_probability, neutral_probability, stock_value)
   
   result = {
       "symbol": symbol,

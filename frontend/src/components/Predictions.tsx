@@ -21,22 +21,59 @@ const Predictions: React.FC = () => {
       {predictions.length === 0 ? (
         <p className="text-center text-gray-500">No predictions available.</p>
       ) : (
-        <div className="border grid">
-          {predictions.map((prediction) => (
-            <div
-              key={prediction.id}
-              className="flex gap-6 px-6 py-4"
-            >
-              <h2 className="text-xl font-semibold text-blue-600">{prediction.symbol}</h2>
-              <p className="text-gray-200">Date: {new Date(prediction.date_time).toLocaleDateString("de-DE")}</p>
-              <p className="text-gray-200">Stock Value: ${prediction.stock_value.toFixed(2)}</p>
-              <div className="flex gap-4">
-                <p className="text-green-500">&#9989; Positive: {prediction.positive_count}</p>
-                <p className="text-red-500">&#10060; Negative: {prediction.negative_count}</p>
-                <p className="text-gray-300">&#9898; Neutral: {prediction.neutral_count}</p>
-              </div>
-            </div>
-          ))}
+        <div className="border">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-800 text-gray-200 border-b">
+                <th className="px-6 py-3 text-center">Symbol</th>
+                <th className="px-6 py-3 text-center">Date</th>
+                <th className="px-6 py-3 text-center">Positive</th>
+                <th className="px-6 py-3 text-center">Negative</th>
+                <th className="px-6 py-3 text-center">Neutral</th>
+                <th className="px-6 py-3 text-center">Stock Value</th>
+                <th className="px-6 py-3 text-center">1 Day</th>
+                <th className="px-6 py-3 text-center">2 Day</th>
+                <th className="px-6 py-3 text-center">3 Day</th>
+                <th className="px-6 py-3 text-center">7 Day</th>
+              </tr>
+            </thead>
+            <tbody>
+              {predictions.map((prediction) => (
+                <tr key={prediction.id} className="border-b border-gray-700 hover:bg-gray-800">
+                  <td className="px-6 py-4">
+                    <h2 className="text-xl font-semibold text-blue-600">{prediction.symbol}</h2>
+                  </td>
+                  <td className="px-6 py-4 text-gray-200">
+                    {new Date(prediction.date_time).toLocaleDateString("de-DE")}
+                  </td>
+                  <td className="px-6 py-4 text-green-500">
+                    &#9989; {prediction.positive_count}
+                  </td>
+                  <td className="px-6 py-4 text-red-500">
+                    &#10060; {prediction.negative_count}
+                  </td>
+                  <td className="px-6 py-4 text-gray-300">
+                    &#9898; {prediction.neutral_count}
+                  </td>
+                  <td className="px-6 py-4 text-gray-200">
+                    ${prediction.stock_value.toFixed(2)}
+                  </td>
+                  <td className="px-6 py-4 text-green-500">
+                    {prediction.future_prices["1_day"] ? `$${prediction.future_prices["1_day"]?.toFixed(2)}` : 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 text-red-500">
+                    {prediction.future_prices["2_day"] ? `$${prediction.future_prices["2_day"]?.toFixed(2)}` : 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 text-gray-300">
+                    {prediction.future_prices["3_day"] ? `$${prediction.future_prices["3_day"]?.toFixed(2)}` : 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 text-gray-300">
+                    {prediction.future_prices["7_day"] ? `$${prediction.future_prices["7_day"]?.toFixed(2)}` : 'N/A'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

@@ -79,7 +79,7 @@ def get_all_predictions_with_future_prices():
     return result
 
 
-def save_prediction(symbol, date_time, positive_count, negative_count, neutral_count, positive_probability, 
+def save_prediction(symbol, date_time:str, positive_count, negative_count, neutral_count, positive_probability, 
                     negative_probability, neutral_probability, stock_value):
     
     if company_exists(symbol) is False:
