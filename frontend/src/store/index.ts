@@ -1,9 +1,11 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { predictionsReducer } from './predictionsSlice';
+import themeReducer from './themeSlice';
 
 export const store = configureStore({
   reducer: {
     predictions: predictionsReducer,
+    theme: themeReducer,
   },
 });
 

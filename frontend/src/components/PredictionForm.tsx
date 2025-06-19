@@ -5,12 +5,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../store';
 import { fetchPredictions, makePrediction } from '../store/predictionsSlice';
 
-interface ResponseData {
-  status: string;
-  message?: string;
-}
 
-const PredictionForm = () => {
+const PredictionForm: React.FC= () => {
   const [symbol, setSymbol] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const dispatch = useDispatch<AppDispatch>();
@@ -25,7 +21,6 @@ const PredictionForm = () => {
       })).unwrap();
       // Refresh predictions after successful submission
       await dispatch(fetchPredictions());
-      // Clear the form
       setSymbol("");
       setSelectedDate(null);
     } catch (error) {
@@ -44,7 +39,7 @@ const PredictionForm = () => {
               value={symbol}
               onChange={(e) => setSymbol(e.target.value)}
               required
-              className="border rounded px-2 py-1 text-gray-800"
+              className="border rounded px-2 py-1 text-gray-900 bg-white dark:bg-gray-800 dark:text-gray-100"
               disabled={formLoading}
             />
           <label>
@@ -54,14 +49,14 @@ const PredictionForm = () => {
             selected={selectedDate}
             onChange={(date: Date | null) => setSelectedDate(date)}
             dateFormat="yyyy-MM-dd"
-            className="border rounded px-2 py-1 text-gray-800"
+            className="border rounded px-2 py-1 text-gray-900 bg-white dark:bg-gray-800 dark:text-gray-100"
             placeholderText="Select a date"
             shouldCloseOnSelect={true}
             disabled={formLoading}
           />
           <button 
             type="submit" 
-            className={`bg-blue-500 text-white px-4 py-2 rounded flex items-center gap-2 ${formLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'}`}
+            className={`px-4 py-2 rounded flex items-center gap-2 ${formLoading ? 'opacity-50 cursor-not-allowed' : ''} bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600`}
             disabled={formLoading}
           >
             {formLoading ? (
@@ -81,7 +76,7 @@ const PredictionForm = () => {
 
       {/* Display error message if there's an error */}
       {error && (
-        <div className="mt-4 bg-red-500 text-white p-4 rounded">
+        <div className="mt-4 p-4 rounded bg-red-200 text-red-900 dark:bg-red-500 dark:text-white">
           {error}
         </div>
       )}
@@ -90,7 +85,7 @@ const PredictionForm = () => {
       {lastPredictionResult && (
         <div className="mt-4">
           <h2 className="text-xl font-semibold mb-2">Prediction Result:</h2>
-          <div className="bg-gray-800 p-4 rounded">
+          <div className="bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white p-4 rounded">
             <p className="mb-2">{lastPredictionResult.message}</p>
             <div className="grid grid-cols-3 gap-4">
               <div>
