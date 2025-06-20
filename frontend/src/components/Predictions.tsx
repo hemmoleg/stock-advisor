@@ -2,6 +2,8 @@ import React, { useEffect } from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import { AppDispatch, RootState } from '../store';
 import { fetchPredictions } from '../store/predictionsSlice';
+import PriceCell from './PriceCell';
+
 
 const Predictions: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -17,7 +19,7 @@ const Predictions: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-center mb-8 text-gray-900 dark:text-gray-100">Predictions</h1>
+      <h1 className="text-2xl font-bold text-center mb-8 text-gray-900 dark:text-gray-100">Predictions</h1>
       {predictions.length === 0 ? (
         <p className="text-center text-gray-500 dark:text-gray-400">No predictions available.</p>
       ) : (
@@ -47,29 +49,21 @@ const Predictions: React.FC = () => {
                     {new Date(prediction.date_time).toLocaleDateString("de-DE")}
                   </td>
                   <td className="px-6 py-4 text-green-500">
-                    &#9989; {prediction.positive_count}
+                    <span className="text-sm">&#9989;</span> {prediction.positive_count}
                   </td>
                   <td className="px-6 py-4 text-red-500">
-                    &#10060; {prediction.negative_count}
+                    <span className="text-sm">&#10060;</span> {prediction.negative_count}
                   </td>
                   <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
-                    &#9898; {prediction.neutral_count}
+                    <span className="text-sm">&#9898;</span> {prediction.neutral_count}
                   </td>
                   <td className="px-6 py-4 text-gray-900 dark:text-gray-200">
                     ${prediction.stock_value.toFixed(2)}
                   </td>
-                  <td className="px-6 py-4 text-green-500">
-                    {prediction.future_prices["1_day"] ? `$${prediction.future_prices["1_day"]?.toFixed(2)}` : 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 text-red-500">
-                    {prediction.future_prices["2_day"] ? `$${prediction.future_prices["2_day"]?.toFixed(2)}` : 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
-                    {prediction.future_prices["3_day"] ? `$${prediction.future_prices["3_day"]?.toFixed(2)}` : 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
-                    {prediction.future_prices["7_day"] ? `$${prediction.future_prices["7_day"]?.toFixed(2)}` : 'N/A'}
-                  </td>
+                  <PriceCell futurePrice={prediction.future_prices["1_day"]} currentPrice={prediction.stock_value} />
+                  <PriceCell futurePrice={prediction.future_prices["2_day"]} currentPrice={prediction.stock_value} />
+                  <PriceCell futurePrice={prediction.future_prices["3_day"]} currentPrice={prediction.stock_value} />
+                  <PriceCell futurePrice={prediction.future_prices["7_day"]} currentPrice={prediction.stock_value} />
                 </tr>
               ))}
             </tbody>

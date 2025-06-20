@@ -83,8 +83,7 @@ const PredictionForm: React.FC= () => {
 
       {/* Display the prediction result if available */}
       {lastPredictionResult && (
-        <div className="mt-4">
-          <h2 className="text-xl font-semibold mb-2">Prediction Result:</h2>
+        <div className="mt-4 pt-4">
           <div className="bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white p-4 rounded">
             <p className="mb-2">{lastPredictionResult.message}</p>
             <div className="grid grid-cols-3 gap-4">
