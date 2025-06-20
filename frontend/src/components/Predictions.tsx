@@ -24,7 +24,7 @@ const Predictions: React.FC = () => {
         <p className="text-center text-gray-500 dark:text-gray-400">No predictions available.</p>
       ) : (
         <div className="border border-gray-300 dark:border-gray-600">
-          <table className="w-full">
+          <table className="w-full text-base">
             <thead>
               <tr className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-200 border-b border-gray-300 dark:border-gray-600">
                 <th className="px-6 py-3 text-center">Symbol</th>

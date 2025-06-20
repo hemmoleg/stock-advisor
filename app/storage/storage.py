@@ -28,7 +28,7 @@ def get_all_predictions():
 
 def get_all_predictions_with_future_prices():
     """Get all predictions with future closing prices for 1, 2, 3, and 7 days ahead"""
-    predictions = db.session.query(PredictionSummary, Company).join(Company, PredictionSummary.symbol == Company.symbol).all()
+    predictions = db.session.query(PredictionSummary, Company).join(Company, PredictionSummary.symbol == Company.symbol).order_by(PredictionSummary.date_time.desc()).all()
     
     result = []
     future_days = [1, 2, 3, 7]
