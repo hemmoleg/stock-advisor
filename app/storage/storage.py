@@ -83,11 +83,7 @@ def save_prediction(symbol, date_time:str, positive_count, negative_count, neutr
                     negative_probability, neutral_probability, stock_value):
     
     if company_exists(symbol) is False:
-        # If the company does not exist, create a new Company object
-        name = get_company_name_by_symbol(symbol)
-        new_company = Company(symbol=symbol, name=name)
-        db.session.add(new_company)
-        db.session.commit()
+        save_company(symbol)
     
     # Create a new SentimentSummary object
     prediction_summary = PredictionSummary(
@@ -118,6 +114,13 @@ def company_exists(symbol):
     # Query the Company table to check if the symbol exists
     existing_company = Company.query.filter_by(symbol=symbol).first()
     return existing_company is not None
+
+
+def save_company(symbol):
+    name = get_company_name_by_symbol(symbol)
+    new_company = Company(symbol=symbol.upper(), name=name)
+    db.session.add(new_company)
+    db.session.commit()
 
 
 def save_closing_price(symbol: str, date, closing_price):
