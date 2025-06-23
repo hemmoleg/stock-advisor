@@ -1,4 +1,4 @@
-import spacy
+import re
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
 import torch.nn.functional as F
@@ -16,8 +16,6 @@ tokenizer = AutoTokenizer.from_pretrained("ProsusAI/finbert")
 # Load the actual pretrained FinBERT model for sequence classification
 # The model has been fine-tuned to classify financial text sentiment
 model = AutoModelForSequenceClassification.from_pretrained("ProsusAI/finbert")
-
-nlp = spacy.load("en_core_web_lg")
 
 # Define the labels used by the model: negative, neutral, and positive sentiment
 labels = ["Positive", "Negative", "Neutral"]
@@ -48,10 +46,27 @@ def analyze_sentiment(text):
   }
 
 def extract_stocks(text):
-  # Use spaCy to extract named entities
-  doc = nlp(text)
-  companies = [ent.text for ent in doc.ents if ent.label_ in ["ORG", "GPE"]]
-  return companies
+  # Simple regex-based company extraction
+  # Look for common company patterns and stock symbols
+  companies = []
+  
+  # Common stock symbols (3-5 letter uppercase)
+  stock_symbols = re.findall(r'\b[A-Z]{3,5}\b', text)
+  companies.extend(stock_symbols)
+  
+  # Company names with common suffixes
+  company_patterns = [
+    r'\b[A-Z][a-z]+ (Inc|Corp|Corporation|Company|Co|LLC|Ltd|Limited)\b',
+    r'\b[A-Z][a-z]+ [A-Z][a-z]+ (Inc|Corp|Corporation|Company|Co|LLC|Ltd|Limited)\b',
+    r'\b[A-Z][a-z]+ [A-Z][a-z]+ [A-Z][a-z]+ (Inc|Corp|Corporation|Company|Co|LLC|Ltd|Limited)\b'
+  ]
+  
+  for pattern in company_patterns:
+    matches = re.findall(pattern, text)
+    companies.extend(matches)
+  
+  # Remove duplicates and return
+  return list(set(companies))
 
 def classify_text(title): 
   # Function to analyze a news article
