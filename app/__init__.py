@@ -1,15 +1,35 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_cors import CORS
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 db = SQLAlchemy()
 migrate = Migrate()
 
-def create_app():
+def create_app(config_name=None):
   app = Flask(__name__)
   
-  app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://user:password@localhost:5433/stock_advisor'
+  # Load configuration
+  if config_name is None:
+    config_name = os.getenv('FLASK_ENV', 'development')
+  
+  from config import config
+  app.config.from_object(config[config_name])
+  
+  # Database configuration
+  app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
+    'DATABASE_URL', 
+    'postgresql://user:password@localhost:5433/stock_advisor'
+  )
   app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+  
+  # CORS configuration for frontend
+  CORS(app, resources={r"/*": {"origins": "*"}})
+  
   db.init_app(app)
   migrate.init_app(app, db)
 
@@ -18,18 +38,5 @@ def create_app():
 
   with app.app_context():
     db.create_all()
-
-  #Apple
-  #Sentiment Summary: (From May 14 / Current Value(16:05): 188,90)
-  #Positive: 41
-  #Negative: 16
-  #Neutral: 36
-
-  #Intel
-  #Sentiment Summary: (From May 14 / Current Value(16:10): 19,40)
-  #Positive: 4
-  #Negative: 4
-  #Neutral: 4
-
 
   return app

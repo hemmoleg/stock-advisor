@@ -12,9 +12,8 @@ access DB: - docker exec -it stock_advisor_db bash
 
 dark light done
 
--> handle entering symbol which doesnt relate to any stock ('ff')
 
 jwt auth
-charts stock
+charts stock price
 
      hosting on render

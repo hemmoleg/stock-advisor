@@ -2,6 +2,8 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { Prediction } from '../types/prediction';
 
+const API_URL = process.env.REACT_APP_API_URL;
+
 interface PredictionResponse {
   symbol: string;
   positive_count: number;
@@ -33,7 +35,7 @@ const initialState: PredictionsState = {
 export const fetchPredictions = createAsyncThunk(
   'predictions/fetchPredictions',
   async () => {
-    const response = await axios.get<Prediction[]>('/predictions');
+    const response = await axios.get<Prediction[]>(`${API_URL}/predictions`);
     return response.data;
   }
 );
@@ -43,7 +45,7 @@ export const makePrediction = createAsyncThunk(
   'predictions/makePrediction',
   async ({ symbol, date }: { symbol: string; date: string | null }, { rejectWithValue }) => {
     try {
-      const response = await axios.post<PredictionResponse>('/make_prediction', { symbol, date });
+      const response = await axios.post<PredictionResponse>(`${API_URL}/make_prediction`, { symbol, date });
       return response.data;
     } catch (error: any) {
       // If the error has response data, return it with rejectWithValue
