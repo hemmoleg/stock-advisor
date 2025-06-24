@@ -122,7 +122,7 @@ def make_and_save_prediction():
       "positive_probability": round(positive_probability, 2),
       "negative_probability": round(negative_probability, 2),
       "neutral_probability": round(neutral_probability, 2),
-      "message": f"Prediction and sentiment summary for {symbol} on {datetime.strptime(date_str, "%Y-%m-%d").strftime('%d.%m.%Y')} saved successfully."
+      "message": f"Prediction and sentiment summary for {symbol} on {datetime.strptime(date_str, '%Y-%m-%d').strftime('%d.%m.%Y')} saved successfully."
   }
 
   return jsonify(result), 200
