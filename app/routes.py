@@ -2,7 +2,8 @@ from datetime import datetime, time as dt_time, timedelta
 from zoneinfo import ZoneInfo
 from flask import Blueprint, jsonify, request
 
-from app.news_requester import get_closing_price_at_date, get_company_name_by_symbol, get_price_now, get_news_FINNHUB, get_news_content_with_claude
+#from app.claude_test import get_news_content_with_claude
+from app.news_requester import get_closing_price_at_date, get_company_name_by_symbol, get_price_now, get_news_FINNHUB
 from app.storage.storage import get_all_predictions_with_future_prices, prediction_for_company_and_date_exists, save_prediction, save_closing_price
 from app.utils import save_future_closing_prices
 from .ai import analyze_sentiment, classify_text
@@ -23,21 +24,21 @@ def get_predictions():
     return jsonify(result)
 
 
-@bp.route('/test_claude', methods=['POST'])
-def test_claude():
-  #   "https://finnhub.io/api/news?id=3c78a7b5c32438c8a4189338d4dfdbbe36a4346c447b9f0c33ff4c0b5f41e716",
-  #   "https://finnhub.io/api/news?id=03d1eb4e4810a67ea80e10e84d378acda25f46917af5d42e0b3486830e8a9b92",
-  #   "https://finnhub.io/api/news?id=eb77fa2427125070dbf2e2b37cd576426637be3da38fc9bb13316f54233d5c01",
+# @bp.route('/test_claude', methods=['POST'])
+# def test_claude():
+#   #   "https://finnhub.io/api/news?id=3c78a7b5c32438c8a4189338d4dfdbbe36a4346c447b9f0c33ff4c0b5f41e716",
+#   #   "https://finnhub.io/api/news?id=03d1eb4e4810a67ea80e10e84d378acda25f46917af5d42e0b3486830e8a9b92",
+#   #   "https://finnhub.io/api/news?id=eb77fa2427125070dbf2e2b37cd576426637be3da38fc9bb13316f54233d5c01",
 
 
-  #seeling alpha blocks get request
-  #text = get_news_content_with_claude("https://finnhub.io/api/news?id=c77beeb0421258b17a45aac25cc409d62920cdf82d59900bff1053718e2422c1")
+#   #seeling alpha blocks get request
+#   #text = get_news_content_with_claude("https://finnhub.io/api/news?id=c77beeb0421258b17a45aac25cc409d62920cdf82d59900bff1053718e2422c1")
   
-  #text = get_news_content_with_claude("https://www.computerbase.de/news/gaming/state-of-play-sony-kontert-switch-2-mit-massig-ankuendigungen-und-trailern.92991")
+#   #text = get_news_content_with_claude("https://www.computerbase.de/news/gaming/state-of-play-sony-kontert-switch-2-mit-massig-ankuendigungen-und-trailern.92991")
 
-  text = get_news_content_with_claude("https://finnhub.io/api/news?id=3c78a7b5c32438c8a4189338d4dfdbbe36a4346c447b9f0c33ff4c0b5f41e716")
+#   text = get_news_content_with_claude("https://finnhub.io/api/news?id=3c78a7b5c32438c8a4189338d4dfdbbe36a4346c447b9f0c33ff4c0b5f41e716")
 
-  return text, 200
+#   return text, 200
 
 
 @bp.route('/make_prediction', methods=['POST'])
