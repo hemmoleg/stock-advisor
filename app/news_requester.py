@@ -8,7 +8,14 @@ import anthropic
 load_dotenv()
 api_key = os.getenv("FINNHUB_API_KEY")
 
-client = anthropic.Anthropic(api_key=os.environ.get("CLAUDE_API_KEY"))
+# Lazy initialization of Anthropic client
+_client = None
+
+def get_anthropic_client():
+    global _client
+    if _client is None:
+        _client = anthropic.Anthropic(api_key=os.environ.get("CLAUDE_API_KEY"))
+    return _client
 
 def get_news_NEWSAPI():
   api_key = os.getenv("NEWS_API_KEY")
@@ -67,6 +74,7 @@ def get_news_content_with_claude(url):
     
     #website_response = requests.get(extracted_url)
 
+    client = get_anthropic_client()
     message = client.messages.create(
         model="claude-sonnet-4-20250514",
         max_tokens=4000,
@@ -79,6 +87,7 @@ def get_news_content_with_claude(url):
     return message.to_dict()["content"][0]["text"]
 
 def extract_url_with_claude(text):
+    client = get_anthropic_client()
     message = client.messages.create(
           model="claude-sonnet-4-20250514",
           max_tokens=4000,
