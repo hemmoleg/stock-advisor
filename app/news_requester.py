@@ -66,7 +66,7 @@ def get_closing_price_at_date(symbol: str, date_str: str):
     date = datetime.strptime(date_str, "%Y-%m-%d").date()
     next_day = date + timedelta(days=1)
 
-    data = yf.download(symbol, start=date_str, end=next_day.strftime("%Y-%m-%d"), progress=False)
+    data = yf.download(symbol, start=date_str, end=next_day.strftime("%Y-%m-%d"), progress=False, auto_adjust=True)
   
     if data.empty:
         return None

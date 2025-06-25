@@ -1,82 +1,135 @@
 import re
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-import torch
-import torch.nn.functional as F
-
+#from transformers import AutoTokenizer, AutoModelForSequenceClassification
+#import torch
+#import torch.nn.functional as F
 import os
 from dotenv import load_dotenv
 import openai
 
 load_dotenv()
 
+# Set environment variable to avoid tokenizer warnings
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 # Load the tokenizer specific to the ProsusAI FinBERT model
 # This tokenizer splits and encodes financial text in a way that matches the model's expectations
-tokenizer = AutoTokenizer.from_pretrained("ProsusAI/finbert")
+#tokenizer = AutoTokenizer.from_pretrained("ProsusAI/finbert")
 # Load the actual pretrained FinBERT model for sequence classification
 # The model has been fine-tuned to classify financial text sentiment
-model = AutoModelForSequenceClassification.from_pretrained("ProsusAI/finbert")
+#model = AutoModelForSequenceClassification.from_pretrained("ProsusAI/finbert")
 
 # Define the labels used by the model: negative, neutral, and positive sentiment
 labels = ["Positive", "Negative", "Neutral"]
 
-def analyze_sentiment(text):
-  # Tokenize the input text for the model
-  # 'return_tensors="pt"' tells the tokenizer to return PyTorch tensors
-  # 'truncation' and 'padding' ensure consistent input size
-  inputs = tokenizer(
-    text,
-    return_tensors="pt"
-  )
-  
-  # Turn off gradient tracking since we are doing inference, not training
-  with torch.no_grad():
-    # Pass the tokenized input through the model to get raw outputs (logits)
-    outputs = model(**inputs)
-  
-  # Apply softmax to convert logits into probabilities for each class
-  probs = F.softmax(outputs.logits, dim=1)
-  
- # Get index of highest probability
-  pred_idx = torch.argmax(probs, dim=1).item()
-
-  return {
-      "sentiment": labels[pred_idx],
-      "probabilities": dict(zip(labels, probs[0].tolist()))
-  }
+#def classify_text_finbert(text):
+#  # Tokenize the input text for the model
+#  # 'return_tensors="pt"' tells the tokenizer to return PyTorch tensors
+#  # 'truncation' and 'padding' ensure consistent input size
+#  inputs = tokenizer(
+#    text,
+#    return_tensors="pt"
+#  )
+#  
+#  # Turn off gradient tracking since we are doing inference, not training
+#  with torch.no_grad():
+#    # Pass the tokenized input through the model to get raw outputs (logits)
+#    outputs = model(**inputs)
+#  
+#  # Apply softmax to convert logits into probabilities for each class
+#  probs = F.softmax(outputs.logits, dim=1)
+#  
+#  # Get index of highest probability
+#  pred_idx = torch.argmax(probs, dim=1).item()
+#
+#  return {
+#      "sentiment": labels[pred_idx],
+#      "probabilities": dict(zip(labels, probs[0].tolist()))
+#  }
 
 def extract_stocks(text):
   # Simple regex-based company extraction
-  # Look for common company patterns and stock symbols
   companies = []
   
-  # Common stock symbols (3-5 letter uppercase)
-  stock_symbols = re.findall(r'\b[A-Z]{3,5}\b', text)
-  companies.extend(stock_symbols)
+  # Look for stock symbols in parentheses
+  stock_pattern = r'\(([A-Z]{1,5})\)'
+  matches = re.findall(stock_pattern, text)
+  companies.extend(matches)
   
-  # Company names with common suffixes
-  company_patterns = [
-    r'\b[A-Z][a-z]+ (Inc|Corp|Corporation|Company|Co|LLC|Ltd|Limited)\b',
-    r'\b[A-Z][a-z]+ [A-Z][a-z]+ (Inc|Corp|Corporation|Company|Co|LLC|Ltd|Limited)\b',
-    r'\b[A-Z][a-z]+ [A-Z][a-z]+ [A-Z][a-z]+ (Inc|Corp|Corporation|Company|Co|LLC|Ltd|Limited)\b'
-  ]
+  # Look for common company suffixes
+  company_pattern = r'([A-Z][A-Za-z\s&]+?(?:Inc\.|Corp\.|Ltd\.|LLC|Co\.|Company|Corporation|Limited))'
+  matches = re.findall(company_pattern, text)
+  companies.extend(matches)
   
-  for pattern in company_patterns:
-    matches = re.findall(pattern, text)
-    companies.extend(matches)
+  # Look for standalone capitalized words that might be company names
+  standalone_pattern = r'\b([A-Z][a-z]+(?:\s[A-Z][a-z]+)*)\b'
+  matches = re.findall(standalone_pattern, text)
+  companies.extend(matches)
   
-  # Remove duplicates and return
   return list(set(companies))
 
 def classify_text(title): 
-  # Function to analyze a news article
-  sentiment = analyze_sentiment(title)
-  companies = extract_stocks(title)
-  return {
-      "sentiment": sentiment['sentiment'],
-      "probabilities": sentiment['probabilities'],
-      "companies": companies
-  }
+  # Function to analyze a news article using ChatGPT
+  client = openai.OpenAI(api_key=os.environ.get("GPT_API_KEY"))
+  
+  prompt = f"""Analyze the sentiment of this financial news text and respond with ONLY the sentiment classification and probability score in this exact format:
+              sentiment probability
+                Where sentiment must be exactly one of: positive, negative, neutral
+                And probability must be a number between 0 and 1 (e.g., 0.85)
+                
+                Text to analyze: {title}
+
+                Respond with only the sentiment and probability, nothing else."""
+
+  try:
+    completion = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+          {"role": "user", "content": prompt}
+        ],
+        temperature=0.1  # Low temperature for more consistent outputs
+      )
+    
+    response = completion.choices[0].message.content.strip()
+    
+    # Parse the response to extract sentiment and probability
+    parts = response.split()
+    if len(parts) >= 2:
+        sentiment = parts[0].lower()
+        try:
+            probability = float(parts[1])
+            # Ensure probability is between 0 and 1
+            probability = max(0.0, min(1.0, probability))
+        except ValueError:
+            probability = 0.5  # Default probability if parsing fails
+    else:
+        sentiment = "neutral"
+        probability = 0.5
+    
+    # Ensure sentiment is one of the expected values
+    if sentiment not in ["positive", "negative", "neutral"]:
+        sentiment = "neutral"
+    
+    #companies = extract_stocks(title)
+    
+    return {
+        "sentiment": sentiment.capitalize(),
+        "probabilities": {
+            "Positive": probability if sentiment == "positive" else 0.0,
+            "Negative": probability if sentiment == "negative" else 0.0,
+            "Neutral": probability if sentiment == "neutral" else 0.0
+        },
+        "companies": companies
+    }
+    
+  except Exception as e:
+    print(f"Error in ChatGPT classification: {e}")
+    # Fallback to neutral sentiment
+    companies = extract_stocks(title)
+    return {
+        "sentiment": "Neutral",
+        "probabilities": {"Positive": 0.0, "Negative": 0.0, "Neutral": 1.0},
+        "companies": companies
+    }
   
 
 def gpt_test():

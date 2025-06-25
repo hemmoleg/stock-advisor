@@ -6,7 +6,7 @@ from flask import Blueprint, jsonify, request
 from app.news_requester import get_closing_price_at_date, get_company_name_by_symbol, get_price_now, get_news_FINNHUB
 from app.storage.storage import get_all_predictions_with_future_prices, prediction_for_company_and_date_exists, save_prediction, save_closing_price
 from app.utils import save_future_closing_prices
-from .ai import analyze_sentiment, classify_text
+from .ai import classify_text
 
 bp = Blueprint('routes', __name__)
 
@@ -14,7 +14,7 @@ bp = Blueprint('routes', __name__)
 def analyze():
   data = request.get_json()
   text = data.get('text')
-  result = analyze_sentiment(text)
+  result = classify_text(text)
   return jsonify(result)
 
 
@@ -81,6 +81,8 @@ def make_and_save_prediction():
       #print(article['url'])
       analysis = classify_text(article['summary'])
 
+      print(f"Analysis: {analysis}")
+
       if analysis['sentiment'] == "Positive":
           positive_count += 1
       elif analysis['sentiment'] == "Negative":
@@ -105,10 +107,10 @@ def make_and_save_prediction():
     date_time = datetime.combine(datetime.strptime(date_str, "%Y-%m-%d").date(), dt_time(hour=23, minute=59, second=59))
 
   base_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-  
+
   # Save current stock price
   save_closing_price(symbol, base_date, stock_value)
-  
+
   # Save future closing prices
   save_future_closing_prices(symbol, base_date)
 

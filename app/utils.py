@@ -18,6 +18,5 @@ def save_future_closing_prices(symbol, base_date):
         try:
             price = get_closing_price_at_date(symbol, future_date)
             save_closing_price(symbol, future_date, price)
-            print(f"Saved closing price for {symbol} on {future_date}: {price}")
         except Exception as e:
             print(f"Could not save closing price for {symbol} on {future_date}: {e}") 

@@ -144,5 +144,5 @@ def save_closing_price(symbol: str, date, closing_price):
             closing_price=closing_price
         )
         db.session.add(closing_price_entry)
-    
+    print(f"Saved closing price for {symbol} on {date}: {closing_price}")
     db.session.commit()
