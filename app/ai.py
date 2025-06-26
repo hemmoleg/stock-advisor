@@ -118,7 +118,7 @@ def classify_text(title):
             "Negative": probability if sentiment == "negative" else 0.0,
             "Neutral": probability if sentiment == "neutral" else 0.0
         },
-        "companies": companies
+        #"companies": companies
     }
     
   except Exception as e:
@@ -128,7 +128,7 @@ def classify_text(title):
     return {
         "sentiment": "Neutral",
         "probabilities": {"Positive": 0.0, "Negative": 0.0, "Neutral": 1.0},
-        "companies": companies
+        #"companies": companies
     }
   
 
