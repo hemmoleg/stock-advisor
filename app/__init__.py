@@ -28,7 +28,14 @@ def create_app(config_name=None):
   app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
   
   # CORS configuration for frontend
-  CORS(app, resources={r"/*": {"origins": "*"}})
+  frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+  CORS(app, resources={
+    r"/*": {
+      "origins": [frontend_url, "https://stock-advisor-frontend.onrender.com"],
+      "methods": ["GET", "POST", "OPTIONS", "DELETE", "PUT"],
+      "allow_headers": ["Content-Type"]
+    }
+  })
   
   db.init_app(app)
   migrate.init_app(app, db)
