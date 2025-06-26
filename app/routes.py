@@ -76,12 +76,12 @@ def make_and_save_prediction():
   negative_probability = 0
   neutral_probability = 0
 
-  for article in news:
+  for i, article in enumerate(news, 1):
       #print(f"Headline: {article['headline']}\nSummary: {article['summary']}")
       #print(article['url'])
       analysis = classify_text(article['summary'])
 
-      print(f"Analysis: {analysis}")
+      print(f"Analysis ({i}/{len(news)}): {analysis}")
 
       if analysis['sentiment'] == "Positive":
           positive_count += 1
