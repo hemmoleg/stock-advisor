@@ -5,14 +5,17 @@ import { Prediction } from '../types/prediction';
 const API_URL = process.env.REACT_APP_API_URL;
 
 interface PredictionResponse {
-  symbol: string;
-  positive_count: number;
-  negative_count: number;
-  neutral_count: number;
-  positive_probability: number;
-  negative_probability: number;
-  neutral_probability: number;
-  message: string;
+  status: 'progress' | 'complete' | 'error';
+  symbol?: string;
+  total_news?: number;
+  classified_news?: number;
+  positive_count?: number;
+  negative_count?: number;
+  neutral_count?: number;
+  positive_probability?: number;
+  negative_probability?: number;
+  neutral_probability?: number;
+  message?: string;
 }
 
 interface PredictionsState {
@@ -21,6 +24,10 @@ interface PredictionsState {
   formLoading: boolean;
   error: string | null;
   lastPredictionResult: PredictionResponse | null;
+  classificationProgress: {
+    total: number;
+    classified: number;
+  } | null;
 }
 
 const initialState: PredictionsState = {
@@ -29,6 +36,7 @@ const initialState: PredictionsState = {
   formLoading: false,
   error: null,
   lastPredictionResult: null,
+  classificationProgress: null,
 };
 
 // Async thunk for fetching predictions
@@ -41,19 +49,64 @@ export const fetchPredictions = createAsyncThunk(
 );
 
 // Async thunk for making a prediction
-export const makePrediction = createAsyncThunk(
+export const makePrediction = createAsyncThunk<
+  PredictionResponse,
+  { symbol: string; date: string | null },
+  { rejectValue: string }
+>(
   'predictions/makePrediction',
-  async ({ symbol, date }: { symbol: string; date: string | null }, { rejectWithValue }) => {
+  async ({ symbol, date }, { dispatch, rejectWithValue }) => {
+    const response = await fetch(`${API_URL}/make_prediction`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream'
+      },
+      body: JSON.stringify({ symbol, date })
+    });
+
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+
+    if (!reader) {
+      return rejectWithValue('Failed to initialize stream reader');
+    }
+
     try {
-      const response = await axios.post<PredictionResponse>(`${API_URL}/make_prediction`, { symbol, date });
-      return response.data;
-    } catch (error: any) {
-      // If the error has response data, return it with rejectWithValue
-      if (error.response && error.response.data) {
-        return rejectWithValue(error.response.data);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          console.log(line);
+          if (line.startsWith('data: ')) {
+            const data: PredictionResponse = JSON.parse(line.slice(6));
+            
+            switch (data.status) {
+              case 'progress':
+                dispatch(predictionsSlice.actions.updateProgress({
+                  total: data.total_news!,
+                  classified: data.classified_news!
+                }));
+                break;
+              
+              case 'complete':
+                return data;
+                
+              case 'error':
+                return rejectWithValue(data.message || 'Unknown error occurred');
+            }
+          }
+        }
       }
-      // Otherwise, throw the original error
-      throw error;
+      return rejectWithValue('Stream ended without completion');
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to process prediction');
+    } finally {
+      reader.releaseLock();
     }
   }
 );
@@ -61,7 +114,11 @@ export const makePrediction = createAsyncThunk(
 const predictionsSlice = createSlice({
   name: 'predictions',
   initialState,
-  reducers: {},
+  reducers: {
+    updateProgress: (state, action) => {
+      state.classificationProgress = action.payload;
+    },
+  },
   extraReducers: (builder) => {
     builder
       // Handle fetch predictions
@@ -82,22 +139,18 @@ const predictionsSlice = createSlice({
         state.formLoading = true;
         state.error = null;
         state.lastPredictionResult = null;
+        state.classificationProgress = null;
       })
       .addCase(makePrediction.fulfilled, (state, action) => {
         state.formLoading = false;
         state.lastPredictionResult = action.payload;
+        state.classificationProgress = null;
       })
       .addCase(makePrediction.rejected, (state, action) => {
         state.formLoading = false;
-        let errorMessage = 'Failed to make prediction';
-        
-        // Check if we have payload from rejectWithValue
-        if (action.payload && typeof action.payload === 'object' && 'message' in action.payload) {
-          errorMessage = (action.payload as any).message;
-        }
-        
-        state.error = errorMessage;
+        state.error = action.payload || 'Failed to make prediction';
         state.lastPredictionResult = null;
+        state.classificationProgress = null;
       });
   },
 });

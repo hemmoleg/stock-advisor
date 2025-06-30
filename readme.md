@@ -13,7 +13,11 @@ access DB: - docker exec -it stock_advisor_db bash
 dark light done
 
 
+find an easy way to show error message from backend
+make input field for stock symbol always upper case
+
 jwt auth
 charts stock price
-
-     hosting on render
+dropdown on Stock Symbol Input field (based on companies in DB)
+automatic stock price update
+    - extra info when day is a weekend day
