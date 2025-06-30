@@ -39,6 +39,7 @@ def make_prediction():
     def generate_updates():
         #check if prediction for date and company already exists
         if prediction_for_company_and_date_exists(symbol, date_str):
+            print(f"Prediction for {symbol} on {date_str} already exists")
             yield f"data: {json.dumps({'status': 'error', 'message': f'Prediction for {symbol} on {date_str} already exists'})}\n\n"
             return
 

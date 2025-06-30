@@ -55,7 +55,7 @@ export const makePrediction = createAsyncThunk<
   { rejectValue: string }
 >(
   'predictions/makePrediction',
-  async ({ symbol, date }, { dispatch }) => {
+  async ({ symbol, date }, { dispatch, rejectWithValue }) => {
     return new Promise((resolve, reject) => {
       const params = new URLSearchParams({ 
         symbol, 
@@ -132,7 +132,7 @@ const predictionsSlice = createSlice({
       })
       .addCase(makePrediction.rejected, (state, action) => {
         state.formLoading = false;
-        state.error = action.payload || 'Failed to make prediction';
+        state.error = action.error.message || 'Failed to make prediction';
         state.lastPredictionResult = null;
         state.classificationProgress = null;
       });
