@@ -55,59 +55,43 @@ export const makePrediction = createAsyncThunk<
   { rejectValue: string }
 >(
   'predictions/makePrediction',
-  async ({ symbol, date }, { dispatch, rejectWithValue }) => {
-    const response = await fetch(`${API_URL}/make_prediction`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'text/event-stream'
-      },
-      body: JSON.stringify({ symbol, date })
-    });
+  async ({ symbol, date }, { dispatch }) => {
+    return new Promise((resolve, reject) => {
+      const params = new URLSearchParams({ 
+        symbol, 
+        ...(date && { date })
+      });
+      
+      const eventSource = new EventSource(`${API_URL}/make_prediction?${params}`);
 
-    const reader = response.body?.getReader();
-    const decoder = new TextDecoder();
-
-    if (!reader) {
-      return rejectWithValue('Failed to initialize stream reader');
-    }
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          console.log(line);
-          if (line.startsWith('data: ')) {
-            const data: PredictionResponse = JSON.parse(line.slice(6));
-            
-            switch (data.status) {
-              case 'progress':
-                dispatch(predictionsSlice.actions.updateProgress({
-                  total: data.total_news!,
-                  classified: data.classified_news!
-                }));
-                break;
-              
-              case 'complete':
-                return data;
-                
-              case 'error':
-                return rejectWithValue(data.message || 'Unknown error occurred');
-            }
-          }
+      eventSource.onmessage = (event) => {
+        const data: PredictionResponse = JSON.parse(event.data);
+        
+        switch (data.status) {
+          case 'progress':
+            dispatch(predictionsSlice.actions.updateProgress({
+              total: data.total_news!,
+              classified: data.classified_news!
+            }));
+            break;
+          
+          case 'complete':
+            eventSource.close();
+            resolve(data);
+            break;
+          
+          case 'error':
+            eventSource.close();
+            reject(new Error(data.message || 'Unknown error occurred'));
+            break;
         }
-      }
-      return rejectWithValue('Stream ended without completion');
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to process prediction');
-    } finally {
-      reader.releaseLock();
-    }
+      };
+
+      eventSource.onerror = () => {
+        eventSource.close();
+        reject(new Error('Connection error occurred'));
+      };
+    });
   }
 );
 

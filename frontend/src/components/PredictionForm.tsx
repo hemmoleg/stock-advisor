@@ -63,7 +63,7 @@ const PredictionForm: React.FC= () => {
             <input
               type="text"
               value={symbol}
-              onChange={(e) => setSymbol(e.target.value)}
+              onChange={(e) => setSymbol(e.target.value.toUpperCase())}
               required
               className="border rounded px-2 py-1 text-gray-900 bg-white dark:bg-gray-800 dark:text-gray-100"
               disabled={formLoading}

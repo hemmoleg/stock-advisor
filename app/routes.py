@@ -25,11 +25,13 @@ def get_predictions():
     return jsonify(result)
 
 
-@bp.route('/make_prediction', methods=['POST'])
+@bp.route('/make_prediction', methods=['GET'])
 def make_prediction():
-    data = request.get_json()
-    symbol = data.get('symbol')
-    date_str = data.get('date')
+    symbol = request.args.get('symbol')
+    date_str = request.args.get('date')
+
+    if not symbol:
+        return jsonify({'status': 'error', 'message': 'Symbol is required'}), 400
 
     if not date_str:
         date_str = datetime.now().strftime('%Y-%m-%d')
@@ -114,7 +116,15 @@ def make_prediction():
 
         yield f"data: {json.dumps(final_result)}\n\n"
 
-    return Response(stream_with_context(generate_updates()), mimetype='text/event-stream')
+    return Response(
+        stream_with_context(generate_updates()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Content-Type': 'text/event-stream'
+        }
+    )
 
 
 @bp.route('/check_prediction', methods=['GET'])
