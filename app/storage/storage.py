@@ -34,10 +34,8 @@ def get_all_predictions_with_future_prices():
     future_days = [1, 2, 3, 7]
     
     for p in predictions:
-        # Get the base date from the prediction
         base_date = p.PredictionSummary.date_time.date()
         
-        # Calculate future prices for this prediction
         future_prices = {}
         for days_ahead in future_days:
             future_date = base_date + timedelta(days=days_ahead)
@@ -78,6 +76,10 @@ def get_all_predictions_with_future_prices():
     
     return result
 
+
+def get_all_symbols():
+    symbols = db.session.query(Company.symbol).all()
+    return [symbol[0] for symbol in symbols]
 
 def save_prediction(symbol, date_time:str, positive_count, negative_count, neutral_count, positive_probability, 
                     negative_probability, neutral_probability, stock_value):

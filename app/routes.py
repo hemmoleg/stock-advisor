@@ -1,11 +1,11 @@
-from datetime import datetime, time as dt_time, timedelta
+from datetime import datetime, time as dt_time
 from zoneinfo import ZoneInfo
 from flask import Blueprint, jsonify, request, Response, stream_with_context
 import json
 
 #from app.claude_test import get_news_content_with_claude
 from app.news_requester import get_closing_price_at_date, get_company_name_by_symbol, get_price_now, get_news_FINNHUB
-from app.storage.storage import get_all_predictions_with_future_prices, prediction_for_company_and_date_exists, save_prediction, save_closing_price
+from app.storage.storage import get_all_predictions_with_future_prices, get_all_symbols, prediction_for_company_and_date_exists, save_prediction, save_closing_price
 from app.utils import save_future_closing_prices
 from .ai import classify_text
 
@@ -24,6 +24,11 @@ def get_predictions():
     result = get_all_predictions_with_future_prices()
     return jsonify(result)
 
+
+@bp.route('/symbols', methods=['GET'])
+def get_symbols():
+    result = get_all_symbols()
+    return jsonify(result)
 
 @bp.route('/make_prediction', methods=['GET'])
 def make_prediction():

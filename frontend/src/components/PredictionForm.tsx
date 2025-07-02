@@ -1,16 +1,29 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DatePicker from "react-datepicker";
+import { Combobox, ComboboxInput, ComboboxOptions, ComboboxOption } from '@headlessui/react';
 import "react-datepicker/dist/react-datepicker.css";
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../store';
 import { fetchPredictions, makePrediction } from '../store/predictionsSlice';
-
+import { fetchSymbols } from '../store/symbols';
 
 const PredictionForm: React.FC= () => {
   const [symbol, setSymbol] = useState("");
+  const [query, setQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const dispatch = useDispatch<AppDispatch>();
   const { formLoading, error, lastPredictionResult, classificationProgress } = useSelector((state: RootState) => state.predictions);
+  const { items: symbols, loading: symbolsLoading } = useSelector((state: RootState) => state.symbols);
+
+  useEffect(() => {
+    dispatch(fetchSymbols());
+  }, [dispatch]);
+
+  // const filteredSymbols = query === ''
+  //   ? symbols
+  //   : symbols.filter((sym) => sym.toUpperCase().includes(query.toUpperCase()));
+
+  const filteredSymbols = symbols;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,14 +73,31 @@ const PredictionForm: React.FC= () => {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex items-center justify-center gap-4">
           <label>Stock Symbol</label>
-            <input
-              type="text"
-              value={symbol}
-              onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-              required
-              className="border rounded px-2 py-1 text-gray-900 bg-white dark:bg-gray-800 dark:text-gray-100"
-              disabled={formLoading}
-            />
+          <div className="relative w-40">
+            <Combobox immediate value={symbol} onChange={(value: string) => setSymbol(value)} onClose={() => setQuery('')}>
+              <ComboboxInput
+                className="w-full border rounded px-2 py-1 text-gray-900 bg-white dark:bg-gray-800 dark:text-gray-100"
+                displayValue={(symbol: unknown) => String(symbol)}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="symbol..."
+              />
+              <ComboboxOptions className="absolute z-10 w-full mt-1 overflow-auto rounded bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 max-h-60">
+                {filteredSymbols.map((symbol) => (
+                  <ComboboxOption 
+                    key={symbol} 
+                    value={symbol} 
+                    className={({ active }) =>
+                      `relative cursor-pointer select-none py-2 px-4 ${
+                        active ? 'bg-blue-600 text-white' : 'text-gray-900 dark:text-gray-100'
+                      }`
+                    }
+                  >
+                    {symbol}
+                  </ComboboxOption>
+                ))}
+              </ComboboxOptions>
+            </Combobox>
+          </div>
           <label>
             Date
           </label>

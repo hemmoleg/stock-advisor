@@ -7,14 +7,14 @@ import PriceCell from './PriceCell';
 
 const Predictions: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { items: predictions, loading } = useSelector((state: RootState) => state.predictions);
+  const { items: predictions, loading: predictionsLoading } = useSelector((state: RootState) => state.predictions);
 
   useEffect(() => {
     dispatch(fetchPredictions());
   }, [dispatch]);
 
-  if (loading) {
-    return <div className="text-center text-lg text-gray-500 dark:text-gray-400">Loading predictions...</div>;
+  if (predictionsLoading) {
+    return <div className="text-center text-lg text-gray-500 dark:text-gray-400">Loading...</div>;
   }
 
   return (
