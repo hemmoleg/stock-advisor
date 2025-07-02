@@ -19,9 +19,9 @@ const PredictionForm: React.FC= () => {
     dispatch(fetchSymbols());
   }, [dispatch]);
 
-  const filteredSymbols = query === ''
+  const filteredSymbols = !query
     ? symbols
-    : symbols.filter((sym) => sym.toUpperCase().includes(query.toUpperCase()));
+    : symbols.filter((sym) => sym.includes(query.toUpperCase()));
 
 
   const handleSubmit = async (e: React.FormEvent) => {
