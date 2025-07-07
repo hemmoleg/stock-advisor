@@ -11,9 +11,10 @@ export interface Prediction {
   neutral_probability: number;
   stock_value: number;
   future_prices: {
-    "1_day": number | null;
-    "2_day": number | null;
-    "3_day": number | null;
-    "7_day": number | null;
+    [key: string]: {
+      price: number | null;
+      is_weekend: boolean;
+      is_holiday: boolean;
+    };
   };
 }

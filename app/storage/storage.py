@@ -1,7 +1,7 @@
-from app.news_requester import get_company_name_by_symbol
+from app.news_requester import get_company_name_by_symbol, check_market_holiday
 from app.storage.db_models import Company, PredictionSummary, ClosingPrice
 from app import db
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 def get_all_predictions():
     predictions = db.session.query(PredictionSummary, Company).join(Company, PredictionSummary.symbol == Company.symbol).all()
@@ -46,15 +46,18 @@ def get_all_predictions_with_future_prices():
                 date_time=future_date
             ).first()
             
-            if closing_price_entry is None:
-                # No entry found for this date and symbol
-                future_prices[f"{days_ahead}_day"] = None
-            elif closing_price_entry.closing_price is None:
-                # Entry found but price is null
-                future_prices[f"{days_ahead}_day"] = None
-            else:
-                # Entry found with valid price
-                future_prices[f"{days_ahead}_day"] = closing_price_entry.closing_price
+            price_info = {
+                'price': None,
+                'is_weekend': False,
+                'is_holiday': False
+            }
+            
+            if closing_price_entry is not None:
+                price_info['price'] = closing_price_entry.closing_price
+                price_info['is_weekend'] = closing_price_entry.is_weekend
+                price_info['is_holiday'] = closing_price_entry.is_holiday
+            
+            future_prices[f"{days_ahead}_day"] = price_info
         
         # Create the enhanced prediction object
         prediction_with_prices = {
@@ -125,7 +128,7 @@ def save_company(symbol):
     db.session.commit()
 
 
-def save_closing_price(symbol: str, date, closing_price):
+def save_closing_price(symbol: str, date: datetime.date, closing_price):
     """Save a closing price to the database"""
     if company_exists(symbol) is False:
         name = get_company_name_by_symbol(symbol)
@@ -133,18 +136,35 @@ def save_closing_price(symbol: str, date, closing_price):
         db.session.add(new_company)
         db.session.commit()
     
+    # Check if the date is a weekend
+    is_weekend = date.weekday() >= 5  # 5 = Saturday, 6 = Sunday
+    
+    # Check if the date is a holiday
+    is_holiday = check_market_holiday(date)
+    
     # Check if closing price already exists for this symbol and date
     existing_price = ClosingPrice.query.filter_by(symbol=symbol, date_time=date).first()
     if existing_price:
         # Update existing price
-        existing_price.closing_price = closing_price
+        existing_price.closing_price = None if (is_weekend or is_holiday) else closing_price
+        existing_price.is_weekend = is_weekend
+        existing_price.is_holiday = is_holiday
     else:
         # Create new closing price entry
         closing_price_entry = ClosingPrice(
             symbol=symbol,
             date_time=date,
-            closing_price=closing_price
+            closing_price=None if (is_weekend or is_holiday) else closing_price,
+            is_weekend=is_weekend,
+            is_holiday=is_holiday
         )
         db.session.add(closing_price_entry)
-    print(f"Saved closing price for {symbol} on {date}: {closing_price}")
+    
+    if is_weekend:
+        print(f"Marked {symbol} on {date} as weekend day")
+    elif is_holiday:
+        print(f"Marked {symbol} on {date} as holiday")
+    else:
+        print(f"Saved closing price for {symbol} on {date}: {closing_price}")
+    
     db.session.commit()

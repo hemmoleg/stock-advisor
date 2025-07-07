@@ -9,7 +9,7 @@ def get_date_ahead(date, days_ahead) -> str:
     return future_date.strftime('%Y-%m-%d')
 
 
-def save_future_closing_prices(symbol, base_date):
+def save_future_closing_prices(symbol, base_date: datetime.date):
     """Save closing prices for multiple future dates (1, 2, 3, and 7 days ahead)"""
     future_days = [1, 2, 3, 7]
     

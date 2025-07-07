@@ -39,6 +39,8 @@ class ClosingPrice(db.Model):
     symbol = db.Column(db.String(10), db.ForeignKey('companies.symbol'), nullable=False, index=True)
     date_time = db.Column(db.Date, nullable=False)
     closing_price = db.Column(db.Float, nullable=True)  # Allow NULL for weekend days
+    is_weekend = db.Column(db.Boolean, nullable=False, default=False)  # Flag to mark weekend days
+    is_holiday = db.Column(db.Boolean, nullable=False, default=False)  # Flag to mark holiday days
     
     # Add a unique constraint to ensure that the same symbol and date cannot be added multiple times
     __table_args__ = (

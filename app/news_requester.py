@@ -78,3 +78,27 @@ def get_closing_price_at_date(symbol: str, date_str: str):
         return closing_price
     else:
         return closing_price.iloc[0]
+
+def check_market_holiday(date):
+    """Check if a given date is a market holiday using Finnhub API"""
+    url = f"https://finnhub.io/api/v1/stock/market-holiday?exchange=US&token={api_key}"
+    
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an exception for bad status codes
+        data = response.json()
+        
+        # Convert date to string format YYYY-MM-DD for comparison
+        date_str = date.strftime('%Y-%m-%d')
+        
+        # Check if the date is in the holiday list
+        # Only consider it a holiday if tradingHour is empty (full day holiday)
+        for holiday in data.get('data', []):
+            if holiday.get('atDate') == date_str and holiday.get('tradingHour') == '':
+                return True
+        
+        return False
+        
+    except Exception as e:
+        print(f"Error checking market holiday: {e}")
+        return False  # Default to not a holiday in case of error

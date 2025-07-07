@@ -1,13 +1,15 @@
-from datetime import datetime, time as dt_time
+from datetime import datetime, time as dt_time, timedelta
 from zoneinfo import ZoneInfo
 from flask import Blueprint, jsonify, request, Response, stream_with_context
 import json
 
 #from app.claude_test import get_news_content_with_claude
-from app.news_requester import get_closing_price_at_date, get_company_name_by_symbol, get_price_now, get_news_FINNHUB
+from app.news_requester import check_market_holiday, get_closing_price_at_date, get_company_name_by_symbol, get_price_now, get_news_FINNHUB
 from app.storage.storage import get_all_predictions_with_future_prices, get_all_symbols, prediction_for_company_and_date_exists, save_prediction, save_closing_price
 from app.utils import save_future_closing_prices
 from .ai import classify_text
+from app import db
+from app.storage.db_models import PredictionSummary, ClosingPrice
 
 bp = Blueprint('routes', __name__)
 
@@ -97,7 +99,7 @@ def make_prediction():
             stock_value = get_closing_price_at_date(symbol, date_str)
             date_time = datetime.combine(datetime.strptime(date_str, "%Y-%m-%d").date(), dt_time(hour=23, minute=59, second=59))
 
-        base_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        base_date: datetime.date = datetime.strptime(date_str, "%Y-%m-%d").date()
 
         # Save current stock price
         save_closing_price(symbol, base_date, stock_value)
@@ -170,3 +172,86 @@ def set_closing_price():
         "date": date,
         "closing_price": closing_price
     }), 200
+
+@bp.route('/update_closing_prices', methods=['POST'])
+def update_closing_prices():
+    # Get lookback days from request, default to 7 days
+    data = request.get_json(silent=True) or {}
+    lookback_days = data.get('lookback_days', 31)
+    
+    # Calculate the cutoff date
+    cutoff_date = datetime.now().date() - timedelta(days=lookback_days)
+    
+    # Get all predictions since cutoff date
+    predictions = PredictionSummary.query.filter(
+        db.func.date(PredictionSummary.date_time) >= cutoff_date
+    ).order_by(PredictionSummary.date_time.desc()).all()
+
+    updates_summary = {
+        'total_predictions_checked': 0,
+        'prices_updated': 0,
+        'weekend_dates_count': 0,
+        'holiday_dates_count': 0,
+        'symbols_updated': set(),
+        'price_updates': [],  # List to store detailed update information
+        'errors': []
+    }
+
+    future_days = [1, 2, 3, 7]  # Days to check for each prediction
+    
+    for prediction in predictions:
+        updates_summary['total_predictions_checked'] += 1
+        base_date = prediction.date_time.date()
+        
+        for days_ahead in future_days:
+            future_date = base_date + timedelta(days=days_ahead)
+            
+            # Skip if the future date is in the future (prices not available yet)
+            if future_date >= datetime.now().date():
+                continue
+            
+            # Check if it's a weekend
+            if future_date.weekday() >= 5:
+                updates_summary['weekend_dates_count'] += 1
+                # Save the weekend information
+                save_closing_price(prediction.symbol, future_date, None)
+                continue
+            
+            # Check if it's a holiday
+            if check_market_holiday(future_date):
+                updates_summary['holiday_dates_count'] += 1
+                # Save the holiday information
+                save_closing_price(prediction.symbol, future_date, None)
+                continue
+                
+            # Check if we already have this price
+            existing_price = ClosingPrice.query.filter_by(
+                symbol=prediction.symbol,
+                date_time=future_date
+            ).first()
+            
+            # If price doesn't exist or is None, try to fetch it
+            if not existing_price or existing_price.closing_price is None:
+                try:
+                    closing_price = get_closing_price_at_date(prediction.symbol, future_date.strftime('%Y-%m-%d'))
+                    if closing_price is not None:
+                        save_closing_price(prediction.symbol, future_date, closing_price)
+                        updates_summary['prices_updated'] += 1
+                        updates_summary['symbols_updated'].add(prediction.symbol)
+                        
+                        # Add detailed update information
+                        updates_summary['price_updates'].append({
+                            'symbol': prediction.symbol,
+                            'price_date': future_date.strftime('%Y-%m-%d'),
+                            'closing_price': closing_price
+                        })
+                except Exception as e:
+                    updates_summary['errors'].append(f"Error updating {prediction.symbol} for {future_date}: {str(e)}")
+
+    # Convert set to list for JSON serialization
+    updates_summary['symbols_updated'] = list(updates_summary['symbols_updated'])
+    
+    return jsonify({
+        'status': 'success',
+        'summary': updates_summary
+    })

@@ -18,7 +18,7 @@ jwt auth
 charts stock price
 dropdown on Stock Symbol Input field (based on companies in DB)
 automatic stock price update
-    - extra info when day is a weekend day
+
 
 seperate page when clicking on prediction
   - more info to prediction there
