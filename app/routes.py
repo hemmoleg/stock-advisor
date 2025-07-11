@@ -6,13 +6,14 @@ import json
 #from app.claude_test import get_news_content_with_claude
 from app.news_requester import check_market_holiday, get_closing_price_at_date, get_company_name_by_symbol, get_price_now, get_news_FINNHUB
 from app.storage.storage import (
-    get_all_predictions_with_future_prices, 
+    get_all_predictions, 
     get_all_symbols, 
     prediction_for_company_and_date_exists, 
     save_prediction, 
     save_closing_price,
     update_last_price_timestamp,
-    get_last_price_update
+    get_last_price_update,
+    get_prediction_with_details
 )
 from app.utils import save_future_closing_prices
 from .ai import classify_text
@@ -31,8 +32,17 @@ def analyze():
 
 @bp.route('/predictions', methods=['GET'])
 def get_predictions():
-    result = get_all_predictions_with_future_prices()
+    result = get_all_predictions()
     return jsonify(result)
+
+
+@bp.route('/predictions/<int:prediction_id>', methods=['GET'])
+def get_prediction_details(prediction_id):
+    """Get detailed information about a specific prediction including news articles"""
+    prediction = get_prediction_with_details(prediction_id)
+    if prediction is None:
+        return jsonify({'error': 'Prediction not found'}), 404
+    return jsonify(prediction)
 
 
 @bp.route('/symbols', methods=['GET'])
@@ -74,11 +84,15 @@ def make_prediction():
         negative_probability = 0
         neutral_probability = 0
 
+        # Store classifications for later use
+        classifications = []
+
         # Send initial total count
         yield f"data: {json.dumps({'status': 'progress', 'total_news': total_news_count, 'classified_news': 0})}\n\n"
 
         for i, article in enumerate(news, 1):
             analysis = classify_text(article['summary'])
+            classifications.append(analysis)  # Store the classification
             print(f"Analysis ({i}/{total_news_count}): {analysis}")
 
             if analysis['sentiment'] == "Positive":
@@ -115,8 +129,9 @@ def make_prediction():
         # Save future closing prices
         save_future_closing_prices(symbol, base_date)
 
+        # Save prediction with news articles
         save_prediction(symbol, date_time, positive_count, negative_count, neutral_count, positive_probability, 
-                        negative_probability, neutral_probability, stock_value)
+                        negative_probability, neutral_probability, stock_value, news_articles=news, classifications=classifications)
         
         final_result = {
             "status": "complete",

@@ -23,6 +23,13 @@ class LastPriceUpdate(db.Model):
         return f"<LastPriceUpdate at {self.updated_at}>"
 
 
+# Junction table for many-to-many relationship between predictions and news
+prediction_news = db.Table('prediction_news',
+    db.Column('prediction_id', db.Integer, db.ForeignKey('prediction_summaries.id', ondelete='CASCADE'), primary_key=True),
+    db.Column('news_id', db.Integer, db.ForeignKey('classified_news.id', ondelete='CASCADE'), primary_key=True)
+)
+
+
 class PredictionSummary(db.Model):
     __tablename__ = 'prediction_summaries'
 
@@ -38,6 +45,14 @@ class PredictionSummary(db.Model):
     neutral_probability = db.Column(Numeric(5, 2), nullable=False)
     
     stock_value = db.Column(db.Float, nullable=False)
+
+    # Update the relationship configuration
+    news_articles = db.relationship(
+        'ClassifiedNews',
+        secondary=prediction_news,
+        backref=db.backref('prediction_summaries', lazy='dynamic'),
+        lazy='dynamic'
+    )
 
     def __repr__(self):
         return f"<PredictionSummary {self.symbol} - {self.date_time}>"
@@ -57,3 +72,17 @@ class ClosingPrice(db.Model):
     __table_args__ = (
         db.UniqueConstraint('symbol', 'date_time', name='uq_symbol_date'),
     )
+
+
+class ClassifiedNews(db.Model):
+    __tablename__ = 'classified_news'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(500), nullable=False)
+    url = db.Column(db.String(1000), nullable=False, unique=True)  # Make URL unique
+    date_time = db.Column(db.DateTime, nullable=False, index=True)
+    classification = db.Column(db.String(20), nullable=False)  # 'Positive', 'Negative', or 'Neutral'
+    confidence_score = db.Column(db.Float, nullable=False)
+
+    def __repr__(self):
+        return f"<ClassifiedNews {self.title[:30]}... - {self.classification}>"

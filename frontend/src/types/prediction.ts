@@ -18,3 +18,16 @@ export interface Prediction {
     };
   };
 }
+
+export interface ClassifiedNews {
+  id: number;
+  title: string;
+  url: string;
+  date_time: string;
+  classification: 'Positive' | 'Negative' | 'Neutral';
+  confidence_score: number;
+}
+
+export interface DetailedPrediction extends Prediction {
+  news_articles: ClassifiedNews[];
+}

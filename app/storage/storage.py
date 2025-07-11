@@ -1,5 +1,5 @@
 from app.news_requester import get_company_name_by_symbol, check_market_holiday
-from app.storage.db_models import Company, PredictionSummary, ClosingPrice, LastPriceUpdate
+from app.storage.db_models import Company, PredictionSummary, ClosingPrice, LastPriceUpdate, ClassifiedNews
 from app import db
 from datetime import timedelta, datetime
 
@@ -18,81 +18,77 @@ def get_last_price_update():
     last_update = LastPriceUpdate.query.first()
     return last_update.updated_at if last_update else None
 
-def get_all_predictions():
-    predictions = db.session.query(PredictionSummary, Company).join(Company, PredictionSummary.symbol == Company.symbol).all()
-    
-    result = [
-        {
-            "id": p.PredictionSummary.id,
-            "symbol": p.PredictionSummary.symbol,
-            "name": p.Company.name,
-            "date_time": p.PredictionSummary.date_time.isoformat(),
-            "positive_count": p.PredictionSummary.positive_count,
-            "negative_count": p.PredictionSummary.negative_count,
-            "neutral_count": p.PredictionSummary.neutral_count,
-            "positive_probability": p.PredictionSummary.positive_probability,
-            "negative_probability": p.PredictionSummary.negative_probability,
-            "neutral_probability": p.PredictionSummary.neutral_probability,
-            "stock_value": p.PredictionSummary.stock_value
-        }
-        for p in predictions
-    ]
-    
-    return result
 
-
-def get_all_predictions_with_future_prices():
-    """Get all predictions with future closing prices for 1, 2, 3, and 7 days ahead"""
-    predictions = db.session.query(PredictionSummary, Company).join(Company, PredictionSummary.symbol == Company.symbol).order_by(PredictionSummary.date_time.desc()).all()
+def _build_prediction_response(prediction, include_news=False):
+    """Helper function to build a consistent prediction response object
     
-    result = []
+    Args:
+        prediction: Tuple of (PredictionSummary, Company) from a joined query
+        include_news: Whether to include news articles in the response
+    """
+    base_date = prediction.PredictionSummary.date_time.date()
     future_days = [1, 2, 3, 7]
+    future_prices = {}
     
-    for p in predictions:
-        base_date = p.PredictionSummary.date_time.date()
+    for days_ahead in future_days:
+        future_date = base_date + timedelta(days=days_ahead)
         
-        future_prices = {}
-        for days_ahead in future_days:
-            future_date = base_date + timedelta(days=days_ahead)
-            
-            # Query for closing price on this future date
-            closing_price_entry = ClosingPrice.query.filter_by(
-                symbol=p.PredictionSummary.symbol, 
-                date_time=future_date
-            ).first()
-            
-            price_info = {
-                'price': None,
-                'is_weekend': False,
-                'is_holiday': False
-            }
-            
-            if closing_price_entry is not None:
-                price_info['price'] = closing_price_entry.closing_price
-                price_info['is_weekend'] = closing_price_entry.is_weekend
-                price_info['is_holiday'] = closing_price_entry.is_holiday
-            
-            future_prices[f"{days_ahead}_day"] = price_info
+        # Query for closing price on this future date
+        closing_price_entry = ClosingPrice.query.filter_by(
+            symbol=prediction.PredictionSummary.symbol, 
+            date_time=future_date
+        ).first()
         
-        # Create the enhanced prediction object
-        prediction_with_prices = {
-            "id": p.PredictionSummary.id,
-            "symbol": p.PredictionSummary.symbol,
-            "name": p.Company.name,
-            "date_time": p.PredictionSummary.date_time.isoformat(),
-            "positive_count": p.PredictionSummary.positive_count,
-            "negative_count": p.PredictionSummary.negative_count,
-            "neutral_count": p.PredictionSummary.neutral_count,
-            "positive_probability": p.PredictionSummary.positive_probability,
-            "negative_probability": p.PredictionSummary.negative_probability,
-            "neutral_probability": p.PredictionSummary.neutral_probability,
-            "stock_value": p.PredictionSummary.stock_value,
-            "future_prices": future_prices
+        price_info = {
+            'price': None,
+            'is_weekend': False,
+            'is_holiday': False
         }
         
-        result.append(prediction_with_prices)
+        if closing_price_entry is not None:
+            price_info['price'] = closing_price_entry.closing_price
+            price_info['is_weekend'] = closing_price_entry.is_weekend
+            price_info['is_holiday'] = closing_price_entry.is_holiday
+        
+        future_prices[f"{days_ahead}_day"] = price_info
+
+    response = {
+        "id": prediction.PredictionSummary.id,
+        "symbol": prediction.PredictionSummary.symbol,
+        "name": prediction.Company.name,
+        "date_time": prediction.PredictionSummary.date_time.isoformat(),
+        "positive_count": prediction.PredictionSummary.positive_count,
+        "negative_count": prediction.PredictionSummary.negative_count,
+        "neutral_count": prediction.PredictionSummary.neutral_count,
+        "positive_probability": prediction.PredictionSummary.positive_probability,
+        "negative_probability": prediction.PredictionSummary.negative_probability,
+        "neutral_probability": prediction.PredictionSummary.neutral_probability,
+        "stock_value": prediction.PredictionSummary.stock_value,
+        "future_prices": future_prices
+    }
+
+    if include_news:
+        # Get all news articles for this prediction using the relationship
+        news_articles = prediction.PredictionSummary.news_articles.all()
+        response["news_articles"] = [{
+            "id": article.id,
+            "title": article.title,
+            "url": article.url,
+            "date_time": article.date_time.isoformat(),
+            "classification": article.classification,
+            "confidence_score": article.confidence_score
+        } for article in news_articles]
+
+    return response
+
+
+def get_all_predictions():
+    """Get all predictions with future closing prices for 1, 2, 3, and 7 days ahead"""
+    predictions = db.session.query(PredictionSummary, Company).join(
+        Company, PredictionSummary.symbol == Company.symbol
+    ).order_by(PredictionSummary.date_time.desc()).all()
     
-    return result
+    return [_build_prediction_response(p) for p in predictions]
 
 
 def get_all_symbols():
@@ -100,7 +96,7 @@ def get_all_symbols():
     return [symbol[0] for symbol in symbols]
 
 def save_prediction(symbol, date_time:str, positive_count, negative_count, neutral_count, positive_probability, 
-                    negative_probability, neutral_probability, stock_value):
+                    negative_probability, neutral_probability, stock_value, news_articles, classifications):
     
     if company_exists(symbol) is False:
         save_company(symbol)
@@ -120,6 +116,27 @@ def save_prediction(symbol, date_time:str, positive_count, negative_count, neutr
     
     # Add the object to the session and commit it to the database
     db.session.add(prediction_summary)
+    db.session.commit()
+
+    # Process each news article
+    for article, classification in zip(news_articles, classifications):
+        # Try to find existing news article by URL
+        news = ClassifiedNews.query.filter_by(url=article['url']).first()
+        
+        if not news:
+            # Create new news article if it doesn't exist
+            news = ClassifiedNews(
+                title=article['headline'],
+                url=article['url'],
+                date_time=datetime.fromtimestamp(article['datetime']),
+                classification=classification['sentiment'],
+                confidence_score=classification['probabilities'][classification['sentiment']]
+            )
+            db.session.add(news)
+        
+        # Always associate the news article (whether new or existing) with the prediction
+        prediction_summary.news_articles.append(news)
+    
     db.session.commit()
 
 
@@ -183,3 +200,15 @@ def save_closing_price(symbol: str, date: datetime.date, closing_price):
         print(f"Saved closing price for {symbol} on {date}: {closing_price}")
     
     db.session.commit()
+
+
+def get_prediction_with_details(prediction_id: int):
+    """Get a detailed prediction including news articles and future prices"""
+    prediction = db.session.query(PredictionSummary, Company).join(
+        Company, PredictionSummary.symbol == Company.symbol
+    ).filter(PredictionSummary.id == prediction_id).first()
+    
+    if not prediction:
+        return None
+    
+    return _build_prediction_response(prediction, include_news=True)

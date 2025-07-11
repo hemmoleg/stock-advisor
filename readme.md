@@ -16,9 +16,8 @@ dark light done
 accept "Apple" or "Tesla" as input
 jwt auth
 charts stock price
-automatic stock price update
-    -> OPTIONS /update_closing_prices???
-    -> commit
+ --> remove select element when focusing the symbol combobox
+ --> if news already exists dont analyze it
 
 seperate page when clicking on prediction
   - more info to prediction there

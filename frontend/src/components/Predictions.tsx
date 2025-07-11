@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { AppDispatch, RootState } from '../store';
 import { fetchPredictions } from '../store/predictionsSlice';
 import PriceCell from './PriceCell';
@@ -7,6 +8,7 @@ import PriceCell from './PriceCell';
 
 const Predictions: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
   const { items: predictions, loading: predictionsLoading } = useSelector((state: RootState) => state.predictions);
 
   useEffect(() => {
@@ -37,6 +39,7 @@ const Predictions: React.FC = () => {
                 <th className="px-6 py-3 text-center">2 Day</th>
                 <th className="px-6 py-3 text-center">3 Day</th>
                 <th className="px-6 py-3 text-center">7 Day</th>
+                <th className="px-6 py-3 text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -64,6 +67,14 @@ const Predictions: React.FC = () => {
                   <PriceCell futurePrice={prediction.future_prices["2_day"]} currentPrice={prediction.stock_value} />
                   <PriceCell futurePrice={prediction.future_prices["3_day"]} currentPrice={prediction.stock_value} />
                   <PriceCell futurePrice={prediction.future_prices["7_day"]} currentPrice={prediction.stock_value} />
+                  <td className="px-6 py-4 text-center">
+                    <button
+                      onClick={() => navigate(`/predictions/${prediction.id}`)}
+                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                      Details
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
