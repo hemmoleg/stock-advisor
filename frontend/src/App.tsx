@@ -2,6 +2,7 @@ import React from 'react';
 import './App.css';
 import PredictionForm from './components/PredictionForm';
 import Predictions from './components/Predictions';
+import UpdatePricesButton from './components/UpdatePricesButton';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from './store';
 import { toggleTheme } from './store/themeSlice';
@@ -34,6 +35,7 @@ function App() {
         <p>Get stock predictions and insights.</p>
         <p className='mb-8'>Use the form to submit a stock symbol for analysis.</p>
         <PredictionForm />
+        <UpdatePricesButton />
         <Predictions />
       </main>
     </div>

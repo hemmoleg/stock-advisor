@@ -5,7 +5,15 @@ import json
 
 #from app.claude_test import get_news_content_with_claude
 from app.news_requester import check_market_holiday, get_closing_price_at_date, get_company_name_by_symbol, get_price_now, get_news_FINNHUB
-from app.storage.storage import get_all_predictions_with_future_prices, get_all_symbols, prediction_for_company_and_date_exists, save_prediction, save_closing_price
+from app.storage.storage import (
+    get_all_predictions_with_future_prices, 
+    get_all_symbols, 
+    prediction_for_company_and_date_exists, 
+    save_prediction, 
+    save_closing_price,
+    update_last_price_timestamp,
+    get_last_price_update
+)
 from app.utils import save_future_closing_prices
 from .ai import classify_text
 from app import db
@@ -197,7 +205,7 @@ def update_closing_prices():
         'errors': []
     }
 
-    future_days = [1, 2, 3, 7]  # Days to check for each prediction
+    future_days = [1, 2, 3, 7]
     
     for prediction in predictions:
         updates_summary['total_predictions_checked'] += 1
@@ -251,7 +259,20 @@ def update_closing_prices():
     # Convert set to list for JSON serialization
     updates_summary['symbols_updated'] = list(updates_summary['symbols_updated'])
     
+    # Update the last price update timestamp if any prices were updated
+    update_last_price_timestamp()
+    
     return jsonify({
         'status': 'success',
         'summary': updates_summary
+    })
+
+@bp.route('/last_price_update', methods=['GET'])
+def get_last_update():
+    """Get the timestamp of the last price update"""
+    print("Fetching last price update...")  # Debug log
+    last_update = get_last_price_update()
+    print(f"Last update: {last_update}")  # Debug log
+    return jsonify({
+        'last_update': last_update.isoformat() if last_update else None
     })

@@ -12,6 +12,17 @@ class Company(db.Model):
     def __repr__(self):
         return f"<Company {self.symbol} - {self.name}>"
 
+
+class LastPriceUpdate(db.Model):
+    __tablename__ = 'last_price_update'
+
+    id = db.Column(db.Integer, primary_key=True)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+
+    def __repr__(self):
+        return f"<LastPriceUpdate at {self.updated_at}>"
+
+
 class PredictionSummary(db.Model):
     __tablename__ = 'prediction_summaries'
 

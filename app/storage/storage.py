@@ -1,7 +1,22 @@
 from app.news_requester import get_company_name_by_symbol, check_market_holiday
-from app.storage.db_models import Company, PredictionSummary, ClosingPrice
+from app.storage.db_models import Company, PredictionSummary, ClosingPrice, LastPriceUpdate
 from app import db
 from datetime import timedelta, datetime
+
+def update_last_price_timestamp():
+    """Update the timestamp of the last price update"""
+    last_update = LastPriceUpdate.query.first()
+    if last_update:
+        last_update.updated_at = datetime.now()
+    else:
+        last_update = LastPriceUpdate(updated_at=datetime.now())
+        db.session.add(last_update)
+    db.session.commit()
+
+def get_last_price_update():
+    """Get the timestamp of the last price update"""
+    last_update = LastPriceUpdate.query.first()
+    return last_update.updated_at if last_update else None
 
 def get_all_predictions():
     predictions = db.session.query(PredictionSummary, Company).join(Company, PredictionSummary.symbol == Company.symbol).all()

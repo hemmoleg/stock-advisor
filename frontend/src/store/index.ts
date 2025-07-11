@@ -2,12 +2,14 @@ import { configureStore } from '@reduxjs/toolkit';
 import { predictionsReducer } from './predictionsSlice';
 import themeReducer from './themeSlice';
 import { symbolsReducer } from './symbols';
+import lastPriceUpdateReducer from './lastPriceUpdateSlice';
 
 export const store = configureStore({
   reducer: {
     predictions: predictionsReducer,
     theme: themeReducer,
     symbols: symbolsReducer,
+    lastPriceUpdate: lastPriceUpdateReducer,
   },
 });
 

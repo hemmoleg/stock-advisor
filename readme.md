@@ -16,9 +16,9 @@ dark light done
 accept "Apple" or "Tesla" as input
 jwt auth
 charts stock price
-dropdown on Stock Symbol Input field (based on companies in DB)
 automatic stock price update
-
+    -> OPTIONS /update_closing_prices???
+    -> commit
 
 seperate page when clicking on prediction
   - more info to prediction there
