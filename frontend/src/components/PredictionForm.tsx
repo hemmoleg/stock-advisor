@@ -81,15 +81,16 @@ const PredictionForm: React.FC= () => {
                 setQuery(value);
               }} 
             >
-              <ComboboxInput
+              <ComboboxInput 
                 className="w-full border rounded px-2 py-1 text-gray-900 bg-white dark:bg-gray-800 dark:text-gray-100"
-                displayValue={(symbol: unknown) => String(symbol)}
+                displayValue={(symbol: unknown) => symbol ? String(symbol) : ""}
                 onChange={(event) => {
                   const value = event.target.value.toUpperCase();
                   setQuery(value);
                   setSymbol(value);
                 }}
-                placeholder="symbol..."
+                autoComplete="off"
+                placeholder="Stock symbol"
               />
               {filteredSymbols.length > 0 && (
                 <ComboboxOptions className="absolute z-10 w-full mt-1 overflow-auto rounded bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 max-h-60">
