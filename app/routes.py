@@ -19,6 +19,7 @@ from app.utils import save_future_closing_prices
 from .ai import classify_text
 from app import db
 from app.storage.db_models import PredictionSummary, ClosingPrice
+from app.storage.db_models import ClassifiedNews
 
 bp = Blueprint('routes', __name__)
 
@@ -91,9 +92,28 @@ def make_prediction():
         yield f"data: {json.dumps({'status': 'progress', 'total_news': total_news_count, 'classified_news': 0})}\n\n"
 
         for i, article in enumerate(news, 1):
-            analysis = classify_text(article['summary'])
+            # Check if article already exists and has been classified
+            existing_news = ClassifiedNews.query.filter_by(url=article['url']).first()
+            
+            if existing_news:
+                # Use existing classification
+                analysis = {
+                    'sentiment': existing_news.classification,
+                    'probabilities': {
+                        existing_news.classification: existing_news.confidence_score,
+                        # Set other probabilities to 0 since we don't store them
+                        'Positive': existing_news.confidence_score if existing_news.classification == 'Positive' else 0,
+                        'Negative': existing_news.confidence_score if existing_news.classification == 'Negative' else 0,
+                        'Neutral': existing_news.confidence_score if existing_news.classification == 'Neutral' else 0
+                    }
+                }
+                print(f"Using existing classification ({i}/{total_news_count}): {analysis}")
+            else:
+                # Perform new classification
+                analysis = classify_text(article['summary'])
+                print(f"New classification ({i}/{total_news_count}): {analysis}")
+
             classifications.append(analysis)  # Store the classification
-            print(f"Analysis ({i}/{total_news_count}): {analysis}")
 
             if analysis['sentiment'] == "Positive":
                 positive_count += 1
